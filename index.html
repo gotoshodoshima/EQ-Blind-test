@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQ Blind Test v2</title>
+    
+    <!-- Required local libraries in ./libs folder -->
+    <script src="./libs/react.development.js"></script>
+    <script src="./libs/react-dom.development.js"></script>
+    <script src="./libs/babel.min.js"></script>
+    <script src="./libs/tailwindcss.js"></script>
+    <script src="./libs/lucide.js"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof tailwind !== 'undefined') {
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                background: "hsl(var(--background))",
+                                foreground: "hsl(var(--foreground))",
+                                muted: "hsl(var(--muted))",
+                                "muted-foreground": "hsl(var(--muted-foreground))",
+                                primary: "hsl(var(--primary))",
+                                "primary-foreground": "hsl(var(--primary-foreground))",
+                                border: "hsl(var(--border))",
+                                destructive: "hsl(var(--destructive))", 
+                            }
+                        }
+                    }
+                };
+            }
+        });
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+        
+        :root { 
+            --background: 0 0% 0%; 
+            --foreground: 0 0% 100%; 
+            --muted: 0 0% 10%; 
+            --muted-foreground: 0 0% 60%; 
+            --primary: 0 0% 100%; 
+            --primary-foreground: 0 0% 0%; 
+            --border: 0 0% 20%; 
+            --destructive: 0 62.8% 30.6%;
+        }
+        
+        body { font-family: 'Atkinson Hyperlegible', sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); overflow-x: hidden; }
+        
+        /* Fixed Range Slider Styling */
+        input[type=range] { 
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+            cursor: pointer; 
+            height: 6px; 
+            border-radius: 999px; 
+        }
+        input[type=range]:focus { outline: none; }
+        
+        input[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; 
+            height: 16px; 
+            width: 16px; 
+            border-radius: 50%; 
+            background: #fff; 
+            margin-top: -5px; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); 
+            border: 2px solid #fff;
+            transition: transform 0.1s; 
+        }
+        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
+        
+        input[type=range]::-webkit-slider-runnable-track { 
+            width: 100%; 
+            height: 6px; 
+            cursor: pointer; 
+            border-radius: 999px;
+            background: transparent; 
+        }
+        
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icon Component ---
+        const createIcon = (name) => {
+            return (props) => {
+                if (typeof lucide === 'undefined' || !lucide.icons || !lucide.icons[name]) {
+                    return <div className="inline-block border border-zinc-700 w-5 h-5 rounded" />;
+                }
+                const { color = "currentColor", size = 24, strokeWidth = 2, className = "", ...others } = props;
+                return React.createElement(
+                    'svg',
+                    {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        width: size,
+                        height: size,
+                        viewBox: "0 0 24 24",
+                        fill: "none",
+                        stroke: color,
+                        strokeWidth: strokeWidth,
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round",
+                        className: `lucide lucide-${name.toLowerCase()} ${className}`,
+                        ...others
+                    },
+                    ...lucide.icons[name].map(([tag, attrs]) => React.createElement(tag, attrs))
+                );
+            };
+        };
+
+        const Activity = createIcon('Activity');
+        const Upload = createIcon('Upload');
+        const Play = createIcon('Play');
+        const Pause = createIcon('Pause');
+        const Import = createIcon('Import');
+        const Plus = createIcon('Plus');
+        const Trash2 = createIcon('Trash2');
+        const Award = createIcon('Award');
+        const RotateCcw = createIcon('RotateCcw');
+        const BarChart3 = createIcon('BarChart3');
+        const Settings = createIcon('Settings');
+        const Loader2 = createIcon('Loader2');
+        const FileText = createIcon('FileText');
+        const Sliders = createIcon('Sliders');
+        const List = createIcon('List');
+        const X = createIcon('X');
+        const Power = createIcon('Power');
+        const AlertCircle = createIcon('AlertCircle');
+
+        // --- IndexedDB for Persistent Playlist ---
+        const DB_NAME = "EQBlindTestDB";
+        const STORE_NAME = "songs";
+
+        const initDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => { e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" }); };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        const dbSaveSong = async (id, name, blob) => {
+            const db = await initDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            tx.objectStore(STORE_NAME).put({ id, name, blob });
+        };
+
+        const dbDeleteSong = async (id) => {
+            const db = await initDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            tx.objectStore(STORE_NAME).delete(id);
+        };
+
+        const dbGetAllSongs = async () => {
+            const db = await initDB();
+            return new Promise(r => {
+                const req = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll();
+                req.onsuccess = () => r(req.result);
+            });
+        };
+
+        // --- Visualizer Component ---
+        const Visualizer = ({ analyser, isActive }) => {
+            const canvasRef = useRef(null);
+            const animationRef = useRef(null);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas || !analyser) return;
+                const ctx = canvas.getContext('2d');
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                const draw = () => {
+                    if (!isActive) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        return;
+                    }
+                    animationRef.current = requestAnimationFrame(draw);
+                    analyser.getByteFrequencyData(dataArray);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const barWidth = (canvas.width / dataArray.length) * 2.0;
+                    let x = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const barHeight = (dataArray[i] / 255) * canvas.height;
+                        ctx.fillStyle = `rgba(255, 255, 255, ${0.8 + (barHeight/canvas.height) * 0.2})`;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                        x += barWidth;
+                        if (x > canvas.width) break;
+                    }
+                };
+                if (isActive) draw(); else ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return () => cancelAnimationFrame(animationRef.current);
+            }, [analyser, isActive]);
+
+            return <canvas ref={canvasRef} width={800} height={240} className="w-full h-32 rounded-lg mt-4 opacity-90" />;
+        };
+
+        // --- Rating Logic ---
+        const Q_CONST = Math.log(10) / 400;
+        const g_RD = (rd) => 1 / Math.sqrt(1 + 3 * Q_CONST * Q_CONST * rd * rd / (Math.PI * Math.PI));
+        const E_func = (r, r_j, rd_j) => 1 / (1 + Math.pow(10, -g_RD(rd_j) * (r - r_j) / 400));
+        const calculateRatingUpdate = (p1, p2, outcome) => {
+            const r1 = p1.rating || 1500, rd1 = p1.rd || 350;
+            const r2 = p2.rating || 1500, rd2 = p2.rd || 350;
+            const E = E_func(r1, r2, rd2), g = g_RD(rd2);
+            const d2 = 1 / (Q_CONST * Q_CONST * g * g * E * (1 - E));
+            const newR = r1 + (Q_CONST / (1 / (rd1 * rd1) + 1 / d2)) * g * (outcome - E);
+            const newRD = Math.sqrt(1 / (1 / (rd1 * rd1) + 1 / d2));
+            return { rating: newR, rd: Math.max(newRD, 30) };
+        };
+
+        const serializeToAPO = (p) => {
+            let l = []; if (p.preamp !== 0) l.push(`Preamp: ${p.preamp} dB`);
+            p.bands.forEach((b, i) => l.push(`Filter ${i + 1}: ON ${b.type==='lowshelf'?'LS':b.type==='highshelf'?'HS':'PK'} Fc ${b.freq} Hz Gain ${b.gain} dB Q ${b.q}`));
+            return l.join('\n');
+        };
+
+        const parseEqualizerAPO = (text) => {
+            const bands = []; let preamp = 0;
+            text.split('\n').forEach(line => {
+                line = line.trim(); if (!line || line.startsWith('#')) return;
+                if (line.toLowerCase().startsWith('preamp:')) preamp = parseFloat(line.split(':')[1]) || 0;
+                else if (line.toLowerCase().startsWith('filter')) {
+                    const fm = line.match(/Fc\s+(\d+(?:\.\d+)?)/i), gm = line.match(/Gain\s+([+-]?\d+(?:\.\d+)?)/i), qm = line.match(/Q\s+(\d+(?:\.\d+)?)/i);
+                    if (fm && gm) bands.push({ freq: parseFloat(fm[1]), gain: parseFloat(gm[1]), q: qm?parseFloat(qm[1]):1.0, type: line.includes('LS')?'lowshelf':line.includes('HS')?'highshelf':'peaking' });
+                }
+            });
+            return { bands, preamp };
+        };
+
+        function App() {
+          const [playlist, setPlaylist] = useState([]);
+          const [currentSongIndex, setCurrentSongIndex] = useState(0);
+          const [isSongLoading, setIsSongLoading] = useState(false);
+          const [loadingMessage, setLoadingMessage] = useState("");
+          const [isPlaying, setIsPlaying] = useState(false);
+          const [currentTime, setCurrentTime] = useState(0);
+          const [volume, setVolume] = useState(0.8);
+          const [eqProfiles, setEqProfiles] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_profiles') || '[]'));
+          const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_history') || '[]'));
+          const [mode, setMode] = useState('setup');
+          const [currentPair, setCurrentPair] = useState({ hiddenA: null, hiddenB: null });
+          const [activeSource, setActiveSource] = useState(null);
+          const [editorModes, setEditorModes] = useState({});
+          const [showPlaylist, setShowPlaylist] = useState(false);
+          const [testQueue, setTestQueue] = useState([]);
+          const [isResetConfirming, setIsResetConfirming] = useState(false);
+          const [autoGainCache, setAutoGainCache] = useState({});
+
+          const audioCtxRef = useRef(null);
+          const sourceNodeRef = useRef(null);
+          const gainNodeRef = useRef(null);
+          const analyserNodeRef = useRef(null);
+          const preampNodeRef = useRef(null);
+          const startTimeRef = useRef(0);
+          const pauseTimeRef = useRef(0);
+          const animationRef = useRef(null);
+          const isPlayingRef = useRef(false);
+
+          useEffect(() => { localStorage.setItem('eq_blind_test_profiles', JSON.stringify(eqProfiles)); }, [eqProfiles]);
+          useEffect(() => { localStorage.setItem('eq_blind_test_history', JSON.stringify(history)); }, [history]);
+          useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+
+          const currentSong = playlist[currentSongIndex] || null;
+
+          // --- Persistence: Load from DB ---
+          useEffect(() => {
+              (async () => {
+                  try {
+                      const stored = await dbGetAllSongs();
+                      if (stored && stored.length > 0) {
+                          setIsSongLoading(true); setLoadingMessage("Restoring playlist...");
+                          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                          audioCtxRef.current = ctx;
+                          analyserNodeRef.current = ctx.createAnalyser();
+                          const list = [];
+                          for (const s of stored) {
+                              try {
+                                  const buffer = await ctx.decodeAudioData(await s.blob.arrayBuffer());
+                                  list.push({ id: s.id, name: s.name, buffer, duration: buffer.duration });
+                              } catch(e) {}
+                          }
+                          setPlaylist(list);
+                      }
+                  } catch(e) {} finally { setIsSongLoading(false); setLoadingMessage(""); }
+              })();
+          }, []);
+
+          const initAudio = async () => {
+            if (!audioCtxRef.current) {
+                audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                analyserNodeRef.current = audioCtxRef.current.createAnalyser();
+                analyserNodeRef.current.fftSize = 4096;
+            }
+            if (audioCtxRef.current.state === 'suspended') await audioCtxRef.current.resume();
+            return audioCtxRef.current;
+          };
+
+          const handleFileSelect = async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            setIsSongLoading(true); setLoadingMessage("Saving...");
+            const ctx = await initAudio();
+            const news = [];
+            for (const f of files) {
+                try {
+                    const buf = await ctx.decodeAudioData(await f.arrayBuffer());
+                    const id = Date.now().toString() + Math.random();
+                    const obj = { id, name: f.name, buffer: buf, duration: buf.duration };
+                    news.push(obj);
+                    await dbSaveSong(id, f.name, f);
+                } catch(e) {}
+            }
+            setPlaylist(prev => [...prev, ...news]);
+            setIsSongLoading(false); setLoadingMessage("");
+          };
+
+          const removeSong = async (idx) => {
+              const s = playlist[idx];
+              if (s) await dbDeleteSong(s.id);
+              setPlaylist(p => p.filter((_, i) => i !== idx));
+          };
+
+          const calculateLoudnessCompensation = async (profile, buffer) => {
+            if (!profile || !buffer) return 0;
+            const cacheKey = `${buffer.duration}_${profile.id}_${profile.rawCode}`;
+            if (autoGainCache[cacheKey] !== undefined) return autoGainCache[cacheKey];
+            const sampleRate = buffer.sampleRate;
+            const dur = Math.min(5, buffer.duration);
+            const start = buffer.duration > 20 ? buffer.duration / 2 - 2.5 : 0;
+            try {
+              const offlineCtx = new OfflineAudioContext(2, Math.max(1, sampleRate * dur), sampleRate);
+              const source = offlineCtx.createBufferSource();
+              source.buffer = buffer;
+              let input = source;
+              if (profile.preamp !== 0) {
+                  const pre = offlineCtx.createGain();
+                  pre.gain.value = Math.pow(10, profile.preamp / 20);
+                  input.connect(pre); input = pre;
+              }
+              profile.bands?.forEach(band => {
+                  const filter = offlineCtx.createBiquadFilter();
+                  filter.type = band.type || 'peaking'; filter.frequency.value = band.freq;
+                  filter.gain.value = band.gain; filter.Q.value = band.q || 1.0;
+                  input.connect(filter); input = filter;
+              });
+              input.connect(offlineCtx.destination);
+              source.start(0, start, dur);
+              const renderedBuffer = await offlineCtx.startRendering();
+              const calcRMS = (data) => {
+                  let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+                  return Math.sqrt(sum / data.length);
+              };
+              const originalRMS = calcRMS(buffer.getChannelData(0).slice(Math.floor(start * sampleRate), Math.floor((start + dur) * sampleRate)));
+              const processedRMS = calcRMS(renderedBuffer.getChannelData(0));
+              if (processedRMS < 0.0001 || originalRMS < 0.0001) return 0;
+              const ratio = originalRMS / processedRMS;
+              const dbCorrection = 20 * Math.log10(ratio);
+              setAutoGainCache(prev => ({ ...prev, [cacheKey]: dbCorrection }));
+              return dbCorrection;
+            } catch (e) { return 0; }
+          };
+
+          const buildEQChainSync = (profile, songBuffer) => {
+            const ctx = audioCtxRef.current;
+            if (!ctx) return;
+            if (preampNodeRef.current) preampNodeRef.current.disconnect();
+
+            const cacheKey = songBuffer ? `${songBuffer.duration}_${profile.id}_${profile.rawCode}` : null;
+            const autoGain = autoGainCache[cacheKey] || 0;
+
+            const preamp = ctx.createGain();
+            preamp.gain.value = Math.pow(10, ((profile.preamp || 0) + autoGain) / 20);
+            preampNodeRef.current = preamp;
+
+            let lastNode = preamp;
+            profile.bands?.forEach(b => {
+                const f = ctx.createBiquadFilter();
+                f.type = b.type || 'peaking'; f.frequency.value = b.freq;
+                f.gain.value = b.gain; f.Q.value = b.q || 1;
+                lastNode.connect(f); lastNode = f;
+            });
+
+            lastNode.connect(analyserNodeRef.current);
+            if (!gainNodeRef.current) {
+                gainNodeRef.current = ctx.createGain();
+                gainNodeRef.current.connect(ctx.destination);
+            }
+            analyserNodeRef.current.connect(gainNodeRef.current);
+            gainNodeRef.current.gain.value = volume;
+          };
+
+          const playAudio = async (force = false, target = null, startFromZero = false, forcedSource = null) => {
+            const ctx = await initAudio();
+            const song = target || currentSong;
+            if (!song) return;
+
+            if (isPlaying && !force) {
+                pauseTimeRef.current = (ctx.currentTime - startTimeRef.current) % song.duration;
+                sourceNodeRef.current?.stop();
+                setIsPlaying(false);
+                isPlayingRef.current = false;
+                cancelAnimationFrame(animationRef.current);
+                return;
+            }
+
+            sourceNodeRef.current?.stop();
+            const source = ctx.createBufferSource();
+            source.buffer = song.buffer;
+            source.loop = true;
+            sourceNodeRef.current = source;
+
+            let prof = null;
+            const src = forcedSource || activeSource;
+            if (mode === 'test' && src) prof = eqProfiles.find(p => p.id === (src === 'A' ? currentPair.hiddenA : currentPair.hiddenB));
+            else if (mode === 'setup') prof = eqProfiles[0];
+            
+            if (!prof) prof = { bands: [], preamp: 0 };
+            
+            buildEQChainSync(prof, song.buffer);
+            source.connect(preampNodeRef.current);
+
+            const offset = startFromZero ? 0 : (pauseTimeRef.current % song.duration) || 0;
+            startTimeRef.current = ctx.currentTime - offset;
+            source.start(0, offset);
+            
+            setIsPlaying(true);
+            isPlayingRef.current = true;
+
+            const songDur = song.duration;
+            const updateProgress = () => {
+                if (!isPlayingRef.current) return;
+                const elapsed = (ctx.currentTime - startTimeRef.current) % songDur;
+                setCurrentTime(elapsed);
+                animationRef.current = requestAnimationFrame(updateProgress);
+            };
+            cancelAnimationFrame(animationRef.current);
+            updateProgress();
+          };
+
+          const switchSource = (label) => {
+              if (mode !== 'test') return;
+              const prevLabel = activeSource;
+              setActiveSource(label);
+              
+              if (isPlayingRef.current && sourceNodeRef.current) {
+                  if (prevLabel !== label) {
+                      const targetId = label === 'A' ? currentPair.hiddenA : currentPair.hiddenB;
+                      const profile = eqProfiles.find(p => p.id === targetId);
+                      if (profile && currentSong) {
+                          // Seamless switch: disconnect existing source and reconnect to new chain
+                          sourceNodeRef.current.disconnect();
+                          buildEQChainSync(profile, currentSong.buffer);
+                          sourceNodeRef.current.connect(preampNodeRef.current);
+                      }
+                  }
+              } else if (!isPlayingRef.current) {
+                  playAudio(true, null, false, label);
+              }
+          };
+
+          const handleVote = (vote) => {
+              // Stop audio immediately
+              sourceNodeRef.current?.stop();
+              setIsPlaying(false);
+              isPlayingRef.current = false;
+              cancelAnimationFrame(animationRef.current);
+
+              const pA = eqProfiles.find(p => p.id === currentPair.hiddenA);
+              const pB = eqProfiles.find(p => p.id === currentPair.hiddenB);
+              const score = vote === 'A' ? 1 : vote === 'B' ? 0 : 0.5;
+              const upA = calculateRatingUpdate(pA, pB, score);
+              const upB = calculateRatingUpdate(pB, pA, 1 - score);
+
+              setEqProfiles(prev => prev.map(p => {
+                  if (p.id === pA.id) return { ...p, rating: upA.rating, rd: upA.rd, battles: (p.battles||0)+1, wins: (p.wins||0)+(score===1?1:0) };
+                  if (p.id === pB.id) return { ...p, rating: upB.rating, rd: upB.rd, battles: (p.battles||0)+1, wins: (p.wins||0)+(score===0?1:0) };
+                  return p;
+              }));
+
+              setHistory(h => [{ timestamp: Date.now(), winnerId: vote==='A'?pA.id:vote==='B'?pB.id:null, vote, song: currentSong?.name || "Unknown", profileA: pA.name, profileB: pB.name, idA: pA.id, idB: pB.id }, ...h]);
+              startTestRound(true);
+          };
+
+          const startTestRound = async (next = false) => {
+              const active = eqProfiles.filter(p => p.enabled !== false);
+              if (active.length < 2 || playlist.length === 0) return alert("Settings required: Load songs and enable at least 2 profiles.");
+              let idx = currentSongIndex;
+              if (next) { idx = (idx + 1) % playlist.length; setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); }
+              const song = playlist[idx];
+              let q = [...testQueue];
+              if (q.length === 0) {
+                  for (let i=0; i<active.length; i++) for (let j=i+1; j<active.length; j++) q.push([active[i].id, active[j].id]);
+                  q.sort(() => 0.5 - Math.random());
+              }
+              const [id1, id2] = q.shift(); setTestQueue(q);
+              const p1 = eqProfiles.find(p => p.id === id1);
+              const p2 = eqProfiles.find(p => p.id === id2);
+              await Promise.all([calculateLoudnessCompensation(p1, song.buffer), calculateLoudnessCompensation(p2, song.buffer)]);
+              const isRev = Math.random() > 0.5;
+              setCurrentPair({ hiddenA: isRev ? id2 : id1, hiddenB: isRev ? id1 : id2 });
+              setActiveSource(null); setMode('test');
+          };
+
+          const updateBand = (pid, i, f, v) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands: pr.bands.map((b,idx)=>idx===i?{...b,[f]:f==='type'?v:parseFloat(v)}:b), rawCode:serializeToAPO({...pr,bands:pr.bands.map((b,idx)=>idx===i?{...b,[f]:f==='type'?v:parseFloat(v)}:b)})}));
+          const addBand = (pid) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands:[...pr.bands,{freq:1000,gain:0,q:1,type:'peaking'}], rawCode:serializeToAPO({...pr,bands:[...pr.bands,{freq:1000,gain:0,q:1,type:'peaking'}]})}));
+          const removeBand = (pid, i) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands:pr.bands.filter((_,idx)=>idx!==i), rawCode:serializeToAPO({...pr,bands:pr.bands.filter((_,idx)=>idx!==i)})}));
+          const toggleProfileEnabled = (pid) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, enabled: pr.enabled===false?true:false}));
+          const executeReset = () => { setHistory([]); setEqProfiles(p => p.map(x => ({...x, rating:1500, rd:350, wins:0, battles:0}))); setIsResetConfirming(false); };
+          const formatT = (s) => { const m=Math.floor(s/60); const sc=Math.floor(s%60); return `${m}:${sc.toString().padStart(2,'0')}`; };
+
+          const progressPercent = currentSong ? (currentTime / currentSong.duration) * 100 : 0;
+          const volumePercent = volume * 100;
+
+          return (
+            <div className="min-h-screen pb-20 bg-background text-foreground">
+              <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border text-sm">
+                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+                  <div className="flex items-center gap-2"><Activity size={20} className="text-primary" /><h1 className="font-bold">EQ Blind Test v2</h1></div>
+                  <nav className="flex gap-4 font-medium">
+                    <button onClick={() => setMode('setup')} className={mode === 'setup' ? 'text-primary' : 'text-muted-foreground'}>Setup</button>
+                    <button onClick={() => { if(mode !== 'test') startTestRound(false); else setMode('test'); }} className={mode === 'test' ? 'text-primary' : 'text-muted-foreground'}>Test</button>
+                    <button onClick={() => setMode('results')} className={mode === 'results' ? 'text-primary' : 'text-muted-foreground'}>Results</button>
+                  </nav>
+                </div>
+              </header>
+
+              <main className="container mx-auto px-4 py-8 max-w-4xl relative">
+                <div className="bg-muted/50 rounded-xl p-6 mb-8 border border-border relative text-sm">
+                    {isSongLoading && (
+                        <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-xl z-20 backdrop-blur-sm text-center">
+                            <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-lg border border-border"><Loader2 className="spin size-4" /><span>{loadingMessage}</span></div>
+                        </div>
+                    )}
+                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
+                     <div className="flex items-center gap-3 overflow-hidden w-full md:w-auto">
+                         <button onClick={() => setShowPlaylist(!showPlaylist)} className={`shrink-0 p-2 rounded-lg transition-colors ${showPlaylist ? 'bg-primary text-primary-foreground' : 'bg-muted hover:text-foreground'}`}><List size={18} /></button>
+                         <label className="shrink-0 bg-muted text-foreground p-2 rounded-lg cursor-pointer hover:bg-muted/80 border border-border"><Upload size={18} /><input type="file" accept="audio/*" multiple onChange={handleFileSelect} className="hidden" /></label>
+                         <div className="truncate flex-1 min-w-0"><div className="text-sm font-bold truncate">{currentSong ? currentSong.name : "Please load songs"}</div><div className="text-xs text-muted-foreground">{playlist.length} Songs</div></div>
+                     </div>
+                     <div className="flex items-center gap-3 w-full md:w-auto">
+                        <span className="text-[10px] font-mono opacity-60">VOL</span>
+                        <input 
+                            type="range" 
+                            min="0" max="1" step="0.01" 
+                            value={volume} 
+                            onChange={e => { setVolume(parseFloat(e.target.value)); if(gainNodeRef.current) gainNodeRef.current.gain.value = parseFloat(e.target.value); }} 
+                            className="w-full md:w-24" 
+                            style={{ background: `linear-gradient(to right, white ${volumePercent}%, #333 ${volumePercent}%)` }}
+                        />
+                     </div>
+                  </div>
+
+                  {showPlaylist && playlist.length > 0 && (
+                      <div className="mb-4 bg-background border border-border rounded-lg max-h-48 overflow-y-auto text-xs">
+                          <ul className="divide-y divide-border">
+                              {playlist.map((song, idx) => (
+                                  <li key={song.id} className={`p-2 flex items-center justify-between hover:bg-muted/30 ${currentSongIndex === idx ? 'bg-primary/10' : ''}`}>
+                                      <button onClick={() => { setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); playAudio(true, song, true); }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
+                                      <button onClick={() => removeSong(idx)} className="text-muted-foreground hover:text-destructive p-1"><X size={14} /></button>
+                                  </li>
+                              ))}
+                          </ul>
+                      </div>
+                  )}
+
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => playAudio()} disabled={!currentSong} className="size-12 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50">{isPlaying ? <Pause size={24} /> : <Play size={24} />}</button>
+                    <div className="w-full">
+                        <input 
+                            type="range" 
+                            min="0" max={currentSong?.duration || 100} step="0.1" 
+                            value={currentTime} 
+                            onChange={e => { pauseTimeRef.current = parseFloat(e.target.value); if(isPlaying) playAudio(true, null, false); else setCurrentTime(parseFloat(e.target.value)); }} 
+                            disabled={!currentSong} 
+                            className="w-full" 
+                            style={{ background: `linear-gradient(to right, white ${progressPercent}%, #333 ${progressPercent}%)` }}
+                        />
+                        <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1"><span>{formatT(currentTime)}</span><span>{formatT(currentSong?.duration || 0)}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {mode === 'setup' && (
+                    <div className="space-y-6 animate-in fade-in text-sm">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-bold flex items-center gap-2"><Settings size={20} /> EQ Profiles</h2>
+                            <div className="flex gap-2">
+                                <label className="btn border border-border px-3 py-1.5 rounded-md text-xs cursor-pointer hover:bg-muted flex items-center gap-2"><Import size={12} /> Import<input type="file" multiple onChange={async (e) => {
+                                    const fs = Array.from(e.target.files);
+                                    for (const f of fs) {
+                                        const text = await f.text();
+                                        const data = { name: f.name.replace(/\.[^/.]+$/, ""), rawCode: text, ...parseEqualizerAPO(text) };
+                                        setEqProfiles(prev => [...prev, { ...data, id: Date.now().toString()+Math.random(), rating:1500, rd:350, wins:0, battles:0, enabled:true }]);
+                                    }
+                                }} className="hidden" /></label>
+                                <button onClick={() => setEqProfiles(p => [...p, { id: Date.now().toString(), name: 'New Profile', rawCode: '', bands: [], preamp: 0, rating:1500, rd:350, wins: 0, battles: 0, enabled: true }])} className="btn bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs flex items-center gap-2"><Plus size={12} /> New</button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            {eqProfiles.map(p => (
+                                <div key={p.id} className={`border rounded-xl p-4 bg-background shadow-sm transition-opacity ${p.enabled !== false ? 'border-border' : 'border-border/50 opacity-60'}`}>
+                                    <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
+                                        <input className="font-bold text-lg bg-transparent border-b border-transparent focus:border-primary outline-none flex-1" value={p.name} onChange={e => setEqProfiles(prev => prev.map(pr => pr.id === p.id ? {...pr, name: e.target.value} : pr))} />
+                                        <div className="flex gap-2 items-center">
+                                            <button onClick={() => toggleProfileEnabled(p.id)} className={`flex items-center gap-2 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors ${p.enabled !== false ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-zinc-800 text-zinc-500 border-zinc-700'}`}><Power size={10} />{p.enabled !== false ? 'Active' : 'Excluded'}</button>
+                                            <div className="flex bg-muted/50 rounded-lg p-1">
+                                                <button onClick={() => setEditorModes(v => ({...v, [p.id]: 'text'}))} className={`p-1.5 rounded-md ${editorModes[p.id] !== 'visual' ? 'bg-background shadow' : 'text-muted-foreground'}`}><FileText size={14} /></button>
+                                                <button onClick={() => setEditorModes(v => ({...v, [p.id]: 'visual'}))} className={`p-1.5 rounded-md ${editorModes[p.id] === 'visual' ? 'bg-background shadow' : 'text-muted-foreground'}`}><Sliders size={14} /></button>
+                                            </div>
+                                            <button onClick={() => setEqProfiles(prev => prev.filter(pr => pr.id !== p.id))} className="text-muted-foreground hover:text-destructive p-1"><Trash2 size={14} /></button>
+                                        </div>
+                                    </div>
+                                    {editorModes[p.id] === 'visual' ? (
+                                        <div className="space-y-2">
+                                            {p.bands.map((b, i) => (
+                                                <div key={i} className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2 rounded text-[10px] text-center">
+                                                    <div className="col-span-2 text-left"><select value={b.type} onChange={e => updateBand(p.id, i, 'type', e.target.value)} className="w-full bg-transparent border border-border rounded p-0.5"><option value="peaking">PK</option><option value="lowshelf">LS</option><option value="highshelf">HS</option></select></div>
+                                                    <div className="col-span-3"><input type="number" value={b.freq} onChange={e => updateBand(p.id, i, 'freq', e.target.value)} className="w-full bg-transparent text-center" />Hz</div>
+                                                    <div className="col-span-3"><input type="number" value={b.gain} onChange={e => updateBand(p.id, i, 'gain', e.target.value)} className="w-full bg-transparent text-center" />dB</div>
+                                                    <div className="col-span-3"><input type="number" value={b.q} onChange={e => updateBand(p.id, i, 'q', e.target.value)} className="w-full bg-transparent text-center" />Q</div>
+                                                    <div className="col-span-1 text-right"><button onClick={() => removeBand(p.id, i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={12} /></button></div>
+                                                </div>
+                                            ))}
+                                            <button onClick={() => addBand(p.id)} className="w-full py-1.5 border border-dashed border-border rounded text-[10px] text-muted-foreground hover:bg-muted transition-colors">+ Add Filter Band</button>
+                                        </div>
+                                    ) : (
+                                        <textarea className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none" defaultValue={p.rawCode} onChange={(e) => {
+                                            const text = e.target.value; const parsed = parseEqualizerAPO(text);
+                                            setEqProfiles(prev => prev.map(pr => pr.id === p.id ? { ...pr, bands: parsed.bands, preamp: parsed.preamp, rawCode: text } : pr));
+                                        }} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {mode === 'test' && (
+                    <div className="flex flex-col items-center gap-8 py-4 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+                        <div className="text-center w-full">
+                            <div className="inline-block bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold mb-4 border border-white/20">Round {history.length + 1}</div>
+                            <h2 className="text-xl font-bold mb-1 text-sm">Blind A/B Test</h2>
+                            <p className="text-muted-foreground text-xs opacity-70 italic">Now Playing: {currentSong?.name || "..."}</p>
+                        </div>
+                        {currentPair.hiddenA && (
+                            <div className="w-full max-w-2xl mx-auto text-sm">
+                                <div className="grid grid-cols-2 gap-4 w-full h-64 mb-8">
+                                    <button onClick={() => switchSource('A')} className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col items-start p-6 text-left group ${activeSource === 'A' ? 'border-white bg-zinc-900 shadow-xl opacity-100' : 'border-zinc-800 bg-black opacity-40 hover:opacity-100'}`}>
+                                        <span className={`text-3xl font-bold mb-2 ${activeSource === 'A' ? 'text-white' : 'text-zinc-500'}`}>Play A</span>
+                                        <div className="flex-1 w-full flex items-end"><Visualizer analyser={analyserNodeRef.current} isActive={activeSource === 'A' && isPlaying} /></div>
+                                    </button>
+                                    <button onClick={() => switchSource('B')} className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col items-start p-6 text-left group ${activeSource === 'B' ? 'border-white bg-zinc-900 shadow-xl opacity-100' : 'border-zinc-800 bg-black opacity-40 hover:opacity-100'}`}>
+                                        <span className={`text-3xl font-bold mb-2 ${activeSource === 'B' ? 'text-white' : 'text-zinc-500'}`}>Play B</span>
+                                        <div className="flex-1 w-full flex items-end"><Visualizer analyser={analyserNodeRef.current} isActive={activeSource === 'B' && isPlaying} /></div>
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 w-full h-16">
+                                    <button onClick={() => handleVote(activeSource)} className={`col-span-2 h-full font-bold border rounded-xl transition-all ${!activeSource ? 'border-white/10 bg-black opacity-50' : 'border-white/20 bg-white/5 text-white hover:bg-white hover:text-black shadow-lg'}`} disabled={!activeSource}>Prefer {activeSource || '...'}</button>
+                                    <button onClick={() => handleVote('Tie')} className="h-full border border-white/10 bg-black/20 text-muted-foreground rounded-xl hover:bg-white/10 hover:text-white transition-all">Tie</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {mode === 'results' && (
+                    <div className="space-y-12 animate-in fade-in text-sm">
+                        <div className="flex justify-end gap-3">
+                             {!isResetConfirming ? (
+                                 <button onClick={() => setIsResetConfirming(true)} className="border border-red-500/50 text-red-500 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><RotateCcw size={14} /> Reset History</button>
+                             ) : (
+                                 <div className="flex items-center gap-2 text-sm"><span className="text-[10px] text-red-400 font-bold flex items-center gap-1"><AlertCircle size={12}/> Are you sure?</span><button onClick={executeReset} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-700">Yes, Reset</button><button onClick={() => setIsResetConfirming(false)} className="bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-[10px]">Cancel</button></div>
+                             )}
+                        </div>
+                        <section>
+                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Award size={20} /> Ranking</h2>
+                            <div className="bg-background border border-border rounded-xl overflow-hidden text-xs">
+                                <table className="w-full text-left">
+                                    <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider"><tr><th className="p-3">Rank</th><th className="p-3">Name</th><th className="p-3 text-right">Rating</th><th className="p-3 text-right">Dev (±σ)</th><th className="p-3 text-right">Win Rate</th><th className="p-3 text-right">W/L/D</th></tr></thead>
+                                    <tbody>{eqProfiles.filter(p => p.enabled !== false).sort((a,b) => (b.rating || 1500) - (a.rating || 1500)).map((p, i) => (
+                                        <tr key={p.id} className="border-b border-border last:border-0">
+                                            <td className="p-3 font-mono font-bold text-muted-foreground">{i+1}</td>
+                                            <td className="p-3 font-medium">{p.name}</td>
+                                            <td className="p-3 text-right font-bold text-primary">{Math.round(p.rating || 1500)}</td>
+                                            <td className="p-3 text-right font-mono text-muted-foreground">±{Math.round(p.rd || 350)}</td>
+                                            <td className="p-3 text-right font-bold">{p.battles ? Math.round((p.wins / p.battles) * 100) : 0}%</td>
+                                            <td className="p-3 text-right text-muted-foreground">{p.wins || 0}/{(p.battles||0)-(p.wins||0)}/0</td>
+                                        </tr>
+                                    ))}</tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <section>
+                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><BarChart3 size={20} /> League Table</h2>
+                            <div className="overflow-x-auto"><table className="w-full border-collapse text-[10px]"><thead><tr><th className="p-2 border border-border bg-muted/30"></th>{eqProfiles.filter(p => p.enabled !== false).map(p => <th key={p.id} className="p-2 border border-border bg-muted/30 min-w-[80px] truncate max-w-[100px]" title={p.name}>{p.name}</th>)}</tr></thead><tbody>{eqProfiles.filter(p => p.enabled !== false).map(row => <tr key={row.id}><th className="p-2 border border-border bg-muted/30 text-left truncate max-w-[100px]" title={row.name}>{row.name}</th>{eqProfiles.filter(p => p.enabled !== false).map(col => { if(row.id===col.id)return<td key={col.id} className="bg-muted/50 border border-border"></td>; const m=history.filter(h=>(h.idA===row.id&&h.idB===col.id)||(h.idA===col.id&&h.idB===row.id)); let w=0,l=0,d=0; m.forEach(x=>{if(x.winnerId===row.id)w++;else if(x.winnerId===col.id)l++;else d++;}); if(w+l+d===0)return<td key={col.id} className="border border-border text-center text-muted-foreground opacity-30">-</td>; return<td key={col.id} className={`border border-border text-center ${w>l?'text-green-400':l>w?'text-red-400':'text-muted-foreground'}`}>{w}-{l}</td>; })}</tr>)}</tbody></table></div>
+                        </section>
+                    </div>
+                )}
+              </main>
+            </div>
+          );
+        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
