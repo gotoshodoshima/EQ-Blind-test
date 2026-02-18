@@ -94,7 +94,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Icon Component ---
+        // --- Icon Setup ---
         const createIcon = (name) => {
             return (props) => {
                 if (typeof lucide === 'undefined' || !lucide.icons || !lucide.icons[name]) {
@@ -140,7 +140,7 @@
         const Power = createIcon('Power');
         const AlertCircle = createIcon('AlertCircle');
 
-        // --- IndexedDB for Persistent Playlist ---
+        // --- IndexedDB ---
         const DB_NAME = "EQBlindTestDB";
         const STORE_NAME = "songs";
 
@@ -173,7 +173,7 @@
             });
         };
 
-        // --- Visualizer Component ---
+        // --- Visualizer ---
         const Visualizer = ({ analyser, isActive }) => {
             const canvasRef = useRef(null);
             const animationRef = useRef(null);
@@ -209,7 +209,7 @@
             return <canvas ref={canvasRef} width={800} height={240} className="w-full h-32 rounded-lg mt-4 opacity-90" />;
         };
 
-        // --- Rating Logic ---
+        // --- Glicko-1 Logic ---
         const Q_CONST = Math.log(10) / 400;
         const g_RD = (rd) => 1 / Math.sqrt(1 + 3 * Q_CONST * Q_CONST * rd * rd / (Math.PI * Math.PI));
         const E_func = (r, r_j, rd_j) => 1 / (1 + Math.pow(10, -g_RD(rd_j) * (r - r_j) / 400));
@@ -250,13 +250,14 @@
           const [isPlaying, setIsPlaying] = useState(false);
           const [currentTime, setCurrentTime] = useState(0);
           const [volume, setVolume] = useState(0.8);
+          const [showPlaylist, setShowPlaylist] = useState(false);
+
           const [eqProfiles, setEqProfiles] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_profiles') || '[]'));
           const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_history') || '[]'));
           const [mode, setMode] = useState('setup');
           const [currentPair, setCurrentPair] = useState({ hiddenA: null, hiddenB: null });
           const [activeSource, setActiveSource] = useState(null);
           const [editorModes, setEditorModes] = useState({});
-          const [showPlaylist, setShowPlaylist] = useState(false);
           const [testQueue, setTestQueue] = useState([]);
           const [isResetConfirming, setIsResetConfirming] = useState(false);
           const [autoGainCache, setAutoGainCache] = useState({});
@@ -277,7 +278,7 @@
 
           const currentSong = playlist[currentSongIndex] || null;
 
-          // --- Persistence: Load from DB ---
+          // Persistence Restore
           useEffect(() => {
               (async () => {
                   try {
@@ -320,8 +321,7 @@
                 try {
                     const buf = await ctx.decodeAudioData(await f.arrayBuffer());
                     const id = Date.now().toString() + Math.random();
-                    const obj = { id, name: f.name, buffer: buf, duration: buf.duration };
-                    news.push(obj);
+                    news.push({ id, name: f.name, buffer: buf, duration: buf.duration });
                     await dbSaveSong(id, f.name, f);
                 } catch(e) {}
             }
@@ -412,8 +412,7 @@
             if (isPlaying && !force) {
                 pauseTimeRef.current = (ctx.currentTime - startTimeRef.current) % song.duration;
                 sourceNodeRef.current?.stop();
-                setIsPlaying(false);
-                isPlayingRef.current = false;
+                setIsPlaying(false); isPlayingRef.current = false;
                 cancelAnimationFrame(animationRef.current);
                 return;
             }
@@ -438,8 +437,7 @@
             startTimeRef.current = ctx.currentTime - offset;
             source.start(0, offset);
             
-            setIsPlaying(true);
-            isPlayingRef.current = true;
+            setIsPlaying(true); isPlayingRef.current = true;
 
             const songDur = song.duration;
             const updateProgress = () => {
@@ -462,7 +460,6 @@
                       const targetId = label === 'A' ? currentPair.hiddenA : currentPair.hiddenB;
                       const profile = eqProfiles.find(p => p.id === targetId);
                       if (profile && currentSong) {
-                          // Seamless switch: disconnect existing source and reconnect to new chain
                           sourceNodeRef.current.disconnect();
                           buildEQChainSync(profile, currentSong.buffer);
                           sourceNodeRef.current.connect(preampNodeRef.current);
@@ -474,10 +471,8 @@
           };
 
           const handleVote = (vote) => {
-              // Stop audio immediately
               sourceNodeRef.current?.stop();
-              setIsPlaying(false);
-              isPlayingRef.current = false;
+              setIsPlaying(false); isPlayingRef.current = false;
               cancelAnimationFrame(animationRef.current);
 
               const pA = eqProfiles.find(p => p.id === currentPair.hiddenA);
@@ -487,8 +482,20 @@
               const upB = calculateRatingUpdate(pB, pA, 1 - score);
 
               setEqProfiles(prev => prev.map(p => {
-                  if (p.id === pA.id) return { ...p, rating: upA.rating, rd: upA.rd, battles: (p.battles||0)+1, wins: (p.wins||0)+(score===1?1:0) };
-                  if (p.id === pB.id) return { ...p, rating: upB.rating, rd: upB.rd, battles: (p.battles||0)+1, wins: (p.wins||0)+(score===0?1:0) };
+                  const isA = p.id === pA.id;
+                  const isB = p.id === pB.id;
+                  if (isA || isB) {
+                      const stats = isA ? upA : upB;
+                      const s = isA ? score : 1 - score;
+                      return {
+                          ...p,
+                          rating: stats.rating,
+                          rd: stats.rd,
+                          battles: (p.battles||0) + 1,
+                          wins: (p.wins||0) + (s === 1 ? 1 : 0),
+                          draws: (p.draws||0) + (s === 0.5 ? 1 : 0)
+                      };
+                  }
                   return p;
               }));
 
@@ -520,9 +527,15 @@
           const addBand = (pid) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands:[...pr.bands,{freq:1000,gain:0,q:1,type:'peaking'}], rawCode:serializeToAPO({...pr,bands:[...pr.bands,{freq:1000,gain:0,q:1,type:'peaking'}]})}));
           const removeBand = (pid, i) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands:pr.bands.filter((_,idx)=>idx!==i), rawCode:serializeToAPO({...pr,bands:pr.bands.filter((_,idx)=>idx!==i)})}));
           const toggleProfileEnabled = (pid) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, enabled: pr.enabled===false?true:false}));
-          const executeReset = () => { setHistory([]); setEqProfiles(p => p.map(x => ({...x, rating:1500, rd:350, wins:0, battles:0}))); setIsResetConfirming(false); };
-          const formatT = (s) => { const m=Math.floor(s/60); const sc=Math.floor(s%60); return `${m}:${sc.toString().padStart(2,'0')}`; };
-
+          
+          const executeReset = () => { 
+              setHistory([]); 
+              setEqProfiles(p => p.map(x => ({...x, rating:1500, rd:350, wins:0, battles:0, draws:0}))); 
+              setIsResetConfirming(false); 
+          };
+          
+          const formatTimeDisplay = (s) => { const m=Math.floor(s/60); const sc=Math.floor(s%60); return `${m}:${sc.toString().padStart(2,'0')}`; };
+          
           const progressPercent = currentSong ? (currentTime / currentSong.duration) * 100 : 0;
           const volumePercent = volume * 100;
 
@@ -590,7 +603,7 @@
                             className="w-full" 
                             style={{ background: `linear-gradient(to right, white ${progressPercent}%, #333 ${progressPercent}%)` }}
                         />
-                        <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1"><span>{formatT(currentTime)}</span><span>{formatT(currentSong?.duration || 0)}</span></div>
+                        <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1"><span>{formatTimeDisplay(currentTime)}</span><span>{formatTimeDisplay(currentSong?.duration || 0)}</span></div>
                     </div>
                   </div>
                 </div>
@@ -699,7 +712,7 @@
                                             <td className="p-3 text-right font-bold text-primary">{Math.round(p.rating || 1500)}</td>
                                             <td className="p-3 text-right font-mono text-muted-foreground">±{Math.round(p.rd || 350)}</td>
                                             <td className="p-3 text-right font-bold">{p.battles ? Math.round((p.wins / p.battles) * 100) : 0}%</td>
-                                            <td className="p-3 text-right text-muted-foreground">{p.wins || 0}/{(p.battles||0)-(p.wins||0)}/0</td>
+                                            <td className="p-3 text-right text-muted-foreground">{p.wins || 0}/{(p.battles||0)-(p.wins||0)-(p.draws||0)}/{p.draws||0}</td>
                                         </tr>
                                     ))}</tbody>
                                 </table>
@@ -707,7 +720,7 @@
                         </section>
                         <section>
                             <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><BarChart3 size={20} /> League Table</h2>
-                            <div className="overflow-x-auto"><table className="w-full border-collapse text-[10px]"><thead><tr><th className="p-2 border border-border bg-muted/30"></th>{eqProfiles.filter(p => p.enabled !== false).map(p => <th key={p.id} className="p-2 border border-border bg-muted/30 min-w-[80px] truncate max-w-[100px]" title={p.name}>{p.name}</th>)}</tr></thead><tbody>{eqProfiles.filter(p => p.enabled !== false).map(row => <tr key={row.id}><th className="p-2 border border-border bg-muted/30 text-left truncate max-w-[100px]" title={row.name}>{row.name}</th>{eqProfiles.filter(p => p.enabled !== false).map(col => { if(row.id===col.id)return<td key={col.id} className="bg-muted/50 border border-border"></td>; const m=history.filter(h=>(h.idA===row.id&&h.idB===col.id)||(h.idA===col.id&&h.idB===row.id)); let w=0,l=0,d=0; m.forEach(x=>{if(x.winnerId===row.id)w++;else if(x.winnerId===col.id)l++;else d++;}); if(w+l+d===0)return<td key={col.id} className="border border-border text-center text-muted-foreground opacity-30">-</td>; return<td key={col.id} className={`border border-border text-center ${w>l?'text-green-400':l>w?'text-red-400':'text-muted-foreground'}`}>{w}-{l}</td>; })}</tr>)}</tbody></table></div>
+                            <div className="overflow-x-auto text-[10px]"><table className="w-full border-collapse"><thead><tr><th className="p-2 border border-border bg-muted/30"></th>{eqProfiles.filter(p => p.enabled !== false).map(p => <th key={p.id} className="p-2 border border-border bg-muted/30 min-w-[80px] truncate max-w-[100px]" title={p.name}>{p.name}</th>)}</tr></thead><tbody>{eqProfiles.filter(p => p.enabled !== false).map(row => <tr key={row.id}><th className="p-2 border border-border bg-muted/30 text-left truncate max-w-[100px]" title={row.name}>{row.name}</th>{eqProfiles.filter(p => p.enabled !== false).map(col => { if(row.id===col.id)return<td key={col.id} className="bg-muted/50 border border-border"></td>; const m=history.filter(h=>(h.idA===row.id&&h.idB===col.id)||(h.idA===col.id&&h.idB===row.id)); let w=0,l=0,d=0; m.forEach(x=>{if(x.winnerId===row.id)w++;else if(x.winnerId===col.id)l++;else d++;}); if(w+l+d===0)return<td key={col.id} className="border border-border text-center text-muted-foreground opacity-30">-</td>; return<td key={col.id} className={`border border-border text-center ${w>l?'text-green-400':l>w?'text-red-400':'text-muted-foreground'}`}>{w}-{l}{d>0?`-${d}`:''}</td>; })}</tr>)}</tbody></table></div>
                         </section>
                     </div>
                 )}
