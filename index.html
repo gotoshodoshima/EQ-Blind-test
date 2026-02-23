@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EQ Blind Test v2</title>
-    
+    <title>EQ Shootout v2</title>
+
     <!-- Required local libraries in ./libs folder -->
     <script src="./libs/react.development.js"></script>
     <script src="./libs/react-dom.development.js"></script>
     <script src="./libs/babel.min.js"></script>
     <script src="./libs/tailwindcss.js"></script>
     <script src="./libs/lucide.js"></script>
-    
+
     <!-- Tailwind Config -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -27,7 +28,7 @@
                                 primary: "hsl(var(--primary))",
                                 "primary-foreground": "hsl(var(--primary-foreground))",
                                 border: "hsl(var(--border))",
-                                destructive: "hsl(var(--destructive))", 
+                                destructive: "hsl(var(--destructive))",
                             }
                         }
                     }
@@ -38,56 +39,108 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-        
-        :root { 
-            --background: 0 0% 0%; 
-            --foreground: 0 0% 100%; 
-            --muted: 0 0% 10%; 
-            --muted-foreground: 0 0% 60%; 
-            --primary: 0 0% 100%; 
-            --primary-foreground: 0 0% 0%; 
-            --border: 0 0% 20%; 
+
+        :root {
+            --background: 0 0% 0%;
+            --foreground: 0 0% 100%;
+            --muted: 0 0% 10%;
+            --muted-foreground: 0 0% 60%;
+            --primary: 0 0% 100%;
+            --primary-foreground: 0 0% 0%;
+            --border: 0 0% 20%;
             --destructive: 0 62.8% 30.6%;
+            --viz-color: 255, 255, 255;
+            --slider-thumb: #fff;
+            --slider-track-fill: white;
+            --slider-track-bg: #333;
         }
-        
-        body { font-family: 'Atkinson Hyperlegible', sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); overflow-x: hidden; }
-        
+
+        [data-theme="light"] {
+            --background: 0 0% 97%;
+            --foreground: 0 0% 5%;
+            --muted: 0 0% 91%;
+            --muted-foreground: 0 0% 40%;
+            --primary: 0 0% 10%;
+            --primary-foreground: 0 0% 97%;
+            --border: 0 0% 82%;
+            --destructive: 0 62.8% 50%;
+            --viz-color: 30, 30, 30;
+            --slider-thumb: #222;
+            --slider-track-fill: #222;
+            --slider-track-bg: #ccc;
+        }
+
+        body {
+            font-family: 'Atkinson Hyperlegible', sans-serif;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
         /* Fixed Range Slider Styling */
-        input[type=range] { 
-            -webkit-appearance: none; 
-            width: 100%; 
-            background: transparent; 
-            cursor: pointer; 
-            height: 6px; 
-            border-radius: 999px; 
-        }
-        input[type=range]:focus { outline: none; }
-        
-        input[type=range]::-webkit-slider-thumb { 
-            -webkit-appearance: none; 
-            height: 16px; 
-            width: 16px; 
-            border-radius: 50%; 
-            background: #fff; 
-            margin-top: -5px; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.5); 
-            border: 2px solid #fff;
-            transition: transform 0.1s; 
-        }
-        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.3); }
-        
-        input[type=range]::-webkit-slider-runnable-track { 
-            width: 100%; 
-            height: 6px; 
-            cursor: pointer; 
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+            cursor: pointer;
+            height: 6px;
             border-radius: 999px;
-            background: transparent; 
         }
-        
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--slider-thumb);
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--slider-thumb);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]:active::-webkit-slider-thumb {
+            transform: scale(1.3);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            border-radius: 999px;
+            background: transparent;
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .drag-over {
+            border-top: 2px solid hsl(var(--primary)) !important;
+        }
+
+        .dragging {
+            opacity: 0.4;
+        }
     </style>
 </head>
+
 <body>
     <div id="root"></div>
 
@@ -139,6 +192,24 @@
         const X = createIcon('X');
         const Power = createIcon('Power');
         const AlertCircle = createIcon('AlertCircle');
+        const Sun = createIcon('Sun');
+        const Moon = createIcon('Moon');
+        const Download = createIcon('Download');
+        const Clock = createIcon('Clock');
+        const GripVertical = createIcon('GripVertical');
+        const TrendingUp = createIcon('TrendingUp');
+        const Music = createIcon('Music');
+        const Camera = createIcon('Camera');
+
+        // --- Song RMS Helper ---
+        const calcSongRMS = (buffer) => {
+            const dur = Math.min(10, buffer.duration);
+            const start = buffer.duration > 20 ? buffer.duration / 2 - 5 : 0;
+            const sampleRate = buffer.sampleRate;
+            const data = buffer.getChannelData(0).slice(Math.floor(start * sampleRate), Math.floor((start + dur) * sampleRate));
+            let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+            return Math.sqrt(sum / data.length);
+        };
 
         // --- IndexedDB ---
         const DB_NAME = "EQBlindTestDB";
@@ -196,7 +267,8 @@
                     let x = 0;
                     for (let i = 0; i < dataArray.length; i++) {
                         const barHeight = (dataArray[i] / 255) * canvas.height;
-                        ctx.fillStyle = `rgba(255, 255, 255, ${0.8 + (barHeight/canvas.height) * 0.2})`;
+                        const vc = getComputedStyle(document.documentElement).getPropertyValue('--viz-color').trim() || '255,255,255';
+                        ctx.fillStyle = `rgba(${vc}, ${0.8 + (barHeight / canvas.height) * 0.2})`;
                         ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
                         x += barWidth;
                         if (x > canvas.width) break;
@@ -209,23 +281,52 @@
             return <canvas ref={canvasRef} width={800} height={240} className="w-full h-32 rounded-lg mt-4 opacity-90" />;
         };
 
-        // --- Glicko-1 Logic ---
-        const Q_CONST = Math.log(10) / 400;
-        const g_RD = (rd) => 1 / Math.sqrt(1 + 3 * Q_CONST * Q_CONST * rd * rd / (Math.PI * Math.PI));
-        const E_func = (r, r_j, rd_j) => 1 / (1 + Math.pow(10, -g_RD(rd_j) * (r - r_j) / 400));
+        // --- Glicko-2 Logic ---
+        const TAU = 0.5; // system constant
+        const glicko2Scale = (r, rd) => ({ mu: (r - 1500) / 173.7178, phi: rd / 173.7178 });
+        const glicko2Unscale = (mu, phi) => ({ rating: mu * 173.7178 + 1500, rd: phi * 173.7178 });
+        const g_phi = (phi) => 1 / Math.sqrt(1 + 3 * phi * phi / (Math.PI * Math.PI));
+        const E_glicko2 = (mu, mu_j, phi_j) => 1 / (1 + Math.exp(-g_phi(phi_j) * (mu - mu_j)));
+
         const calculateRatingUpdate = (p1, p2, outcome) => {
-            const r1 = p1.rating || 1500, rd1 = p1.rd || 350;
+            const r1 = p1.rating || 1500, rd1 = p1.rd || 350, vol1 = p1.vol || 0.06;
             const r2 = p2.rating || 1500, rd2 = p2.rd || 350;
-            const E = E_func(r1, r2, rd2), g = g_RD(rd2);
-            const d2 = 1 / (Q_CONST * Q_CONST * g * g * E * (1 - E));
-            const newR = r1 + (Q_CONST / (1 / (rd1 * rd1) + 1 / d2)) * g * (outcome - E);
-            const newRD = Math.sqrt(1 / (1 / (rd1 * rd1) + 1 / d2));
-            return { rating: newR, rd: Math.max(newRD, 30) };
+            const s1 = glicko2Scale(r1, rd1);
+            const s2 = glicko2Scale(r2, rd2);
+            const gp = g_phi(s2.phi);
+            const E = E_glicko2(s1.mu, s2.mu, s2.phi);
+            const v = 1 / (gp * gp * E * (1 - E));
+            const delta = v * gp * (outcome - E);
+            // Volatility update (Illinois algorithm)
+            const a = Math.log(vol1 * vol1);
+            const phi2 = s1.phi * s1.phi;
+            const f = (x) => {
+                const ex = Math.exp(x);
+                const d2 = delta * delta;
+                const num = ex * (d2 - phi2 - v - ex);
+                const den = 2 * (phi2 + v + ex) * (phi2 + v + ex);
+                return num / den - (x - a) / (TAU * TAU);
+            };
+            let A = a;
+            let B = delta * delta > phi2 + v ? Math.log(delta * delta - phi2 - v) : (() => { let k = 1; while (f(a - k * TAU) < 0) k++; return a - k * TAU; })();
+            let fA = f(A), fB = f(B);
+            for (let i = 0; i < 100 && Math.abs(B - A) > 1e-6; i++) {
+                const C = A + (A - B) * fA / (fB - fA);
+                const fC = f(C);
+                if (fC * fB <= 0) { A = B; fA = fB; } else { fA /= 2; }
+                B = C; fB = fC;
+            }
+            const newVol = Math.exp(B / 2);
+            const phiStar = Math.sqrt(phi2 + newVol * newVol);
+            const newPhi = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+            const newMu = s1.mu + newPhi * newPhi * gp * (outcome - E);
+            const result = glicko2Unscale(newMu, newPhi);
+            return { rating: result.rating, rd: Math.max(result.rd, 30), vol: newVol };
         };
 
         const serializeToAPO = (p) => {
             let l = []; if (p.preamp !== 0) l.push(`Preamp: ${p.preamp} dB`);
-            p.bands.forEach((b, i) => l.push(`Filter ${i + 1}: ON ${b.type==='lowshelf'?'LS':b.type==='highshelf'?'HS':'PK'} Fc ${b.freq} Hz Gain ${b.gain} dB Q ${b.q}`));
+            p.bands.forEach((b, i) => l.push(`Filter ${i + 1}: ON ${b.type === 'lowshelf' ? 'LS' : b.type === 'highshelf' ? 'HS' : 'PK'} Fc ${b.freq} Hz Gain ${b.gain} dB Q ${b.q}`));
             return l.join('\n');
         };
 
@@ -236,500 +337,1001 @@
                 if (line.toLowerCase().startsWith('preamp:')) preamp = parseFloat(line.split(':')[1]) || 0;
                 else if (line.toLowerCase().startsWith('filter')) {
                     const fm = line.match(/Fc\s+(\d+(?:\.\d+)?)/i), gm = line.match(/Gain\s+([+-]?\d+(?:\.\d+)?)/i), qm = line.match(/Q\s+(\d+(?:\.\d+)?)/i);
-                    if (fm && gm) bands.push({ freq: parseFloat(fm[1]), gain: parseFloat(gm[1]), q: qm?parseFloat(qm[1]):1.0, type: line.includes('LS')?'lowshelf':line.includes('HS')?'highshelf':'peaking' });
+                    if (fm && gm) bands.push({ freq: parseFloat(fm[1]), gain: parseFloat(gm[1]), q: qm ? parseFloat(qm[1]) : 1.0, type: line.includes('LS') ? 'lowshelf' : line.includes('HS') ? 'highshelf' : 'peaking' });
                 }
             });
             return { bands, preamp };
         };
 
         function App() {
-          const [playlist, setPlaylist] = useState([]);
-          const [currentSongIndex, setCurrentSongIndex] = useState(0);
-          const [isSongLoading, setIsSongLoading] = useState(false);
-          const [loadingMessage, setLoadingMessage] = useState("");
-          const [isPlaying, setIsPlaying] = useState(false);
-          const [currentTime, setCurrentTime] = useState(0);
-          const [volume, setVolume] = useState(0.8);
-          const [showPlaylist, setShowPlaylist] = useState(false);
+            const [playlist, setPlaylist] = useState([]);
+            const [currentSongIndex, setCurrentSongIndex] = useState(0);
+            const [isSongLoading, setIsSongLoading] = useState(false);
+            const [loadingMessage, setLoadingMessage] = useState("");
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [volume, setVolume] = useState(0.8);
+            const [showPlaylist, setShowPlaylist] = useState(false);
 
-          const [eqProfiles, setEqProfiles] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_profiles') || '[]'));
-          const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_history') || '[]'));
-          const [mode, setMode] = useState('setup');
-          const [currentPair, setCurrentPair] = useState({ hiddenA: null, hiddenB: null });
-          const [activeSource, setActiveSource] = useState(null);
-          const [editorModes, setEditorModes] = useState({});
-          const [testQueue, setTestQueue] = useState([]);
-          const [isResetConfirming, setIsResetConfirming] = useState(false);
-          const [autoGainCache, setAutoGainCache] = useState({});
+            const [eqProfiles, setEqProfiles] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_profiles') || '[]'));
+            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_history') || '[]'));
+            const [mode, setMode] = useState('setup');
+            const [currentPair, setCurrentPair] = useState({ hiddenA: null, hiddenB: null });
+            const [activeSource, setActiveSource] = useState(null);
+            const [editorModes, setEditorModes] = useState({});
+            const [testQueue, setTestQueue] = useState([]);
+            const [isResetConfirming, setIsResetConfirming] = useState(false);
+            const [autoGainCache, setAutoGainCache] = useState({});
+            const [theme, setTheme] = useState(() => localStorage.getItem('eq_blind_test_theme') || 'dark');
+            const [roundStartTime, setRoundStartTime] = useState(null);
+            const [dragIndex, setDragIndex] = useState(null);
+            const [dragOverIndex, setDragOverIndex] = useState(null);
+            const [historyShowCount, setHistoryShowCount] = useState(20);
+            const [selectedSongFilter, setSelectedSongFilter] = useState('__all__');
 
-          const audioCtxRef = useRef(null);
-          const sourceNodeRef = useRef(null);
-          const gainNodeRef = useRef(null);
-          const analyserNodeRef = useRef(null);
-          const preampNodeRef = useRef(null);
-          const startTimeRef = useRef(0);
-          const pauseTimeRef = useRef(0);
-          const animationRef = useRef(null);
-          const isPlayingRef = useRef(false);
+            const audioCtxRef = useRef(null);
+            const sourceNodeRef = useRef(null);
+            const gainNodeRef = useRef(null);
+            const analyserNodeRef = useRef(null);
+            const preampNodeRef = useRef(null);
+            const songLoudnessGainRef = useRef(null);
+            const startTimeRef = useRef(0);
+            const pauseTimeRef = useRef(0);
+            const animationRef = useRef(null);
+            const isPlayingRef = useRef(false);
 
-          useEffect(() => { localStorage.setItem('eq_blind_test_profiles', JSON.stringify(eqProfiles)); }, [eqProfiles]);
-          useEffect(() => { localStorage.setItem('eq_blind_test_history', JSON.stringify(history)); }, [history]);
-          useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+            useEffect(() => { localStorage.setItem('eq_blind_test_profiles', JSON.stringify(eqProfiles)); }, [eqProfiles]);
+            useEffect(() => { localStorage.setItem('eq_blind_test_history', JSON.stringify(history)); }, [history]);
+            useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+            useEffect(() => {
+                document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '');
+                localStorage.setItem('eq_blind_test_theme', theme);
+            }, [theme]);
 
-          const currentSong = playlist[currentSongIndex] || null;
+            const currentSong = playlist[currentSongIndex] || null;
 
-          // Persistence Restore
-          useEffect(() => {
-              (async () => {
-                  try {
-                      const stored = await dbGetAllSongs();
-                      if (stored && stored.length > 0) {
-                          setIsSongLoading(true); setLoadingMessage("Restoring playlist...");
-                          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                          audioCtxRef.current = ctx;
-                          analyserNodeRef.current = ctx.createAnalyser();
-                          const list = [];
-                          for (const s of stored) {
-                              try {
-                                  const buffer = await ctx.decodeAudioData(await s.blob.arrayBuffer());
-                                  list.push({ id: s.id, name: s.name, buffer, duration: buffer.duration });
-                              } catch(e) {}
-                          }
-                          setPlaylist(list);
-                      }
-                  } catch(e) {} finally { setIsSongLoading(false); setLoadingMessage(""); }
-              })();
-          }, []);
+            // Persistence Restore
+            useEffect(() => {
+                (async () => {
+                    try {
+                        const stored = await dbGetAllSongs();
+                        if (stored && stored.length > 0) {
+                            setIsSongLoading(true); setLoadingMessage("Restoring playlist...");
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            audioCtxRef.current = ctx;
+                            analyserNodeRef.current = ctx.createAnalyser();
+                            const list = [];
+                            for (const s of stored) {
+                                try {
+                                    const buffer = await ctx.decodeAudioData(await s.blob.arrayBuffer());
+                                    const rms = calcSongRMS(buffer);
+                                    list.push({ id: s.id, name: s.name, buffer, duration: buffer.duration, rms });
+                                } catch (e) { }
+                            }
+                            setPlaylist(list);
+                        }
+                    } catch (e) { } finally { setIsSongLoading(false); setLoadingMessage(""); }
+                })();
+            }, []);
 
-          const initAudio = async () => {
-            if (!audioCtxRef.current) {
-                audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                analyserNodeRef.current = audioCtxRef.current.createAnalyser();
-                analyserNodeRef.current.fftSize = 4096;
-            }
-            if (audioCtxRef.current.state === 'suspended') await audioCtxRef.current.resume();
-            return audioCtxRef.current;
-          };
+            const initAudio = async () => {
+                if (!audioCtxRef.current) {
+                    audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                    analyserNodeRef.current = audioCtxRef.current.createAnalyser();
+                    analyserNodeRef.current.fftSize = 4096;
+                }
+                if (audioCtxRef.current.state === 'suspended') await audioCtxRef.current.resume();
+                return audioCtxRef.current;
+            };
 
-          const handleFileSelect = async (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            setIsSongLoading(true); setLoadingMessage("Saving...");
-            const ctx = await initAudio();
-            const news = [];
-            for (const f of files) {
+            const handleFileSelect = async (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                setIsSongLoading(true); setLoadingMessage("Saving...");
+                const ctx = await initAudio();
+                const news = [];
+                for (const f of files) {
+                    try {
+                        const buf = await ctx.decodeAudioData(await f.arrayBuffer());
+                        const id = Date.now().toString() + Math.random();
+                        const rms = calcSongRMS(buf);
+                        news.push({ id, name: f.name, buffer: buf, duration: buf.duration, rms });
+                        await dbSaveSong(id, f.name, f);
+                    } catch (e) { }
+                }
+                setPlaylist(prev => [...prev, ...news]);
+                setIsSongLoading(false); setLoadingMessage("");
+            };
+
+            const removeSong = async (idx) => {
+                const s = playlist[idx];
+                if (s) await dbDeleteSong(s.id);
+                // Stop playback if removing the currently playing song or if playlist will be empty
+                if (currentSongIndex === idx || playlist.length <= 1) {
+                    sourceNodeRef.current?.stop();
+                    setIsPlaying(false); isPlayingRef.current = false;
+                    cancelAnimationFrame(animationRef.current);
+                }
+                setPlaylist(p => p.filter((_, i) => i !== idx));
+                // Adjust currentSongIndex
+                if (idx < currentSongIndex) setCurrentSongIndex(i => Math.max(0, i - 1));
+                else if (idx === currentSongIndex && currentSongIndex >= playlist.length - 1) setCurrentSongIndex(i => Math.max(0, i - 1));
+            };
+
+            const calculateLoudnessCompensation = async (profile, buffer) => {
+                if (!profile || !buffer) return 0;
+                const cacheKey = `${buffer.duration}_${profile.id}_${profile.rawCode}`;
+                if (autoGainCache[cacheKey] !== undefined) return autoGainCache[cacheKey];
+                const sampleRate = buffer.sampleRate;
+                const dur = Math.min(5, buffer.duration);
+                const start = buffer.duration > 20 ? buffer.duration / 2 - 2.5 : 0;
                 try {
-                    const buf = await ctx.decodeAudioData(await f.arrayBuffer());
-                    const id = Date.now().toString() + Math.random();
-                    news.push({ id, name: f.name, buffer: buf, duration: buf.duration });
-                    await dbSaveSong(id, f.name, f);
-                } catch(e) {}
-            }
-            setPlaylist(prev => [...prev, ...news]);
-            setIsSongLoading(false); setLoadingMessage("");
-          };
+                    const offlineCtx = new OfflineAudioContext(2, Math.max(1, sampleRate * dur), sampleRate);
+                    const source = offlineCtx.createBufferSource();
+                    source.buffer = buffer;
+                    let input = source;
+                    if (profile.preamp !== 0) {
+                        const pre = offlineCtx.createGain();
+                        pre.gain.value = Math.pow(10, profile.preamp / 20);
+                        input.connect(pre); input = pre;
+                    }
+                    profile.bands?.forEach(band => {
+                        const filter = offlineCtx.createBiquadFilter();
+                        filter.type = band.type || 'peaking'; filter.frequency.value = band.freq;
+                        filter.gain.value = band.gain; filter.Q.value = band.q || 1.0;
+                        input.connect(filter); input = filter;
+                    });
+                    input.connect(offlineCtx.destination);
+                    source.start(0, start, dur);
+                    const renderedBuffer = await offlineCtx.startRendering();
+                    const calcRMS = (data) => {
+                        let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+                        return Math.sqrt(sum / data.length);
+                    };
+                    const originalRMS = calcRMS(buffer.getChannelData(0).slice(Math.floor(start * sampleRate), Math.floor((start + dur) * sampleRate)));
+                    const processedRMS = calcRMS(renderedBuffer.getChannelData(0));
+                    if (processedRMS < 0.0001 || originalRMS < 0.0001) return 0;
+                    const ratio = originalRMS / processedRMS;
+                    const dbCorrection = 20 * Math.log10(ratio);
+                    setAutoGainCache(prev => ({ ...prev, [cacheKey]: dbCorrection }));
+                    return dbCorrection;
+                } catch (e) { return 0; }
+            };
 
-          const removeSong = async (idx) => {
-              const s = playlist[idx];
-              if (s) await dbDeleteSong(s.id);
-              setPlaylist(p => p.filter((_, i) => i !== idx));
-          };
+            const buildEQChainSync = (profile, songBuffer, songObj) => {
+                const ctx = audioCtxRef.current;
+                if (!ctx) return;
+                if (preampNodeRef.current) preampNodeRef.current.disconnect();
+                if (songLoudnessGainRef.current) songLoudnessGainRef.current.disconnect();
 
-          const calculateLoudnessCompensation = async (profile, buffer) => {
-            if (!profile || !buffer) return 0;
-            const cacheKey = `${buffer.duration}_${profile.id}_${profile.rawCode}`;
-            if (autoGainCache[cacheKey] !== undefined) return autoGainCache[cacheKey];
-            const sampleRate = buffer.sampleRate;
-            const dur = Math.min(5, buffer.duration);
-            const start = buffer.duration > 20 ? buffer.duration / 2 - 2.5 : 0;
-            try {
-              const offlineCtx = new OfflineAudioContext(2, Math.max(1, sampleRate * dur), sampleRate);
-              const source = offlineCtx.createBufferSource();
-              source.buffer = buffer;
-              let input = source;
-              if (profile.preamp !== 0) {
-                  const pre = offlineCtx.createGain();
-                  pre.gain.value = Math.pow(10, profile.preamp / 20);
-                  input.connect(pre); input = pre;
-              }
-              profile.bands?.forEach(band => {
-                  const filter = offlineCtx.createBiquadFilter();
-                  filter.type = band.type || 'peaking'; filter.frequency.value = band.freq;
-                  filter.gain.value = band.gain; filter.Q.value = band.q || 1.0;
-                  input.connect(filter); input = filter;
-              });
-              input.connect(offlineCtx.destination);
-              source.start(0, start, dur);
-              const renderedBuffer = await offlineCtx.startRendering();
-              const calcRMS = (data) => {
-                  let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
-                  return Math.sqrt(sum / data.length);
-              };
-              const originalRMS = calcRMS(buffer.getChannelData(0).slice(Math.floor(start * sampleRate), Math.floor((start + dur) * sampleRate)));
-              const processedRMS = calcRMS(renderedBuffer.getChannelData(0));
-              if (processedRMS < 0.0001 || originalRMS < 0.0001) return 0;
-              const ratio = originalRMS / processedRMS;
-              const dbCorrection = 20 * Math.log10(ratio);
-              setAutoGainCache(prev => ({ ...prev, [cacheKey]: dbCorrection }));
-              return dbCorrection;
-            } catch (e) { return 0; }
-          };
+                const cacheKey = songBuffer ? `${songBuffer.duration}_${profile.id}_${profile.rawCode}` : null;
+                const autoGain = autoGainCache[cacheKey] || 0;
 
-          const buildEQChainSync = (profile, songBuffer) => {
-            const ctx = audioCtxRef.current;
-            if (!ctx) return;
-            if (preampNodeRef.current) preampNodeRef.current.disconnect();
+                // Song-level loudness normalization
+                const songLoudnessGain = ctx.createGain();
+                if (songObj && songObj.rms && songObj.rms > 0.0001) {
+                    // Target RMS: use median RMS across all songs, or a reference of 0.1
+                    const allRms = playlist.filter(s => s.rms && s.rms > 0.0001).map(s => s.rms);
+                    const targetRms = allRms.length > 0 ? allRms.sort((a, b) => a - b)[Math.floor(allRms.length / 2)] : songObj.rms;
+                    songLoudnessGain.gain.value = targetRms / songObj.rms;
+                } else {
+                    songLoudnessGain.gain.value = 1;
+                }
+                songLoudnessGainRef.current = songLoudnessGain;
 
-            const cacheKey = songBuffer ? `${songBuffer.duration}_${profile.id}_${profile.rawCode}` : null;
-            const autoGain = autoGainCache[cacheKey] || 0;
+                const preamp = ctx.createGain();
+                preamp.gain.value = Math.pow(10, ((profile.preamp || 0) + autoGain) / 20);
+                preampNodeRef.current = preamp;
 
-            const preamp = ctx.createGain();
-            preamp.gain.value = Math.pow(10, ((profile.preamp || 0) + autoGain) / 20);
-            preampNodeRef.current = preamp;
+                songLoudnessGain.connect(preamp);
 
-            let lastNode = preamp;
-            profile.bands?.forEach(b => {
-                const f = ctx.createBiquadFilter();
-                f.type = b.type || 'peaking'; f.frequency.value = b.freq;
-                f.gain.value = b.gain; f.Q.value = b.q || 1;
-                lastNode.connect(f); lastNode = f;
-            });
+                let lastNode = preamp;
+                profile.bands?.forEach(b => {
+                    const f = ctx.createBiquadFilter();
+                    f.type = b.type || 'peaking'; f.frequency.value = b.freq;
+                    f.gain.value = b.gain; f.Q.value = b.q || 1;
+                    lastNode.connect(f); lastNode = f;
+                });
 
-            lastNode.connect(analyserNodeRef.current);
-            if (!gainNodeRef.current) {
-                gainNodeRef.current = ctx.createGain();
-                gainNodeRef.current.connect(ctx.destination);
-            }
-            analyserNodeRef.current.connect(gainNodeRef.current);
-            gainNodeRef.current.gain.value = volume;
-          };
+                lastNode.connect(analyserNodeRef.current);
+                if (!gainNodeRef.current) {
+                    gainNodeRef.current = ctx.createGain();
+                    gainNodeRef.current.connect(ctx.destination);
+                }
+                analyserNodeRef.current.connect(gainNodeRef.current);
+                gainNodeRef.current.gain.value = volume;
+            };
 
-          const playAudio = async (force = false, target = null, startFromZero = false, forcedSource = null) => {
-            const ctx = await initAudio();
-            const song = target || currentSong;
-            if (!song) return;
+            const playAudio = async (force = false, target = null, startFromZero = false, forcedSource = null) => {
+                const ctx = await initAudio();
+                const song = target || currentSong;
+                if (!song) return;
 
-            if (isPlaying && !force) {
-                pauseTimeRef.current = (ctx.currentTime - startTimeRef.current) % song.duration;
+                if (isPlaying && !force) {
+                    pauseTimeRef.current = (ctx.currentTime - startTimeRef.current) % song.duration;
+                    sourceNodeRef.current?.stop();
+                    setIsPlaying(false); isPlayingRef.current = false;
+                    cancelAnimationFrame(animationRef.current);
+                    return;
+                }
+
+                sourceNodeRef.current?.stop();
+                const source = ctx.createBufferSource();
+                source.buffer = song.buffer;
+                source.loop = true;
+                sourceNodeRef.current = source;
+
+                let prof = null;
+                const src = forcedSource || activeSource;
+                if (mode === 'test' && src) prof = eqProfiles.find(p => p.id === (src === 'A' ? currentPair.hiddenA : currentPair.hiddenB));
+                else if (mode === 'setup') prof = eqProfiles[0];
+
+                if (!prof) prof = { bands: [], preamp: 0 };
+
+                buildEQChainSync(prof, song.buffer, song);
+                source.connect(songLoudnessGainRef.current);
+
+                const offset = startFromZero ? 0 : (pauseTimeRef.current % song.duration) || 0;
+                startTimeRef.current = ctx.currentTime - offset;
+                source.start(0, offset);
+
+                setIsPlaying(true); isPlayingRef.current = true;
+
+                const songDur = song.duration;
+                const updateProgress = () => {
+                    if (!isPlayingRef.current) return;
+                    const elapsed = (ctx.currentTime - startTimeRef.current) % songDur;
+                    setCurrentTime(elapsed);
+                    animationRef.current = requestAnimationFrame(updateProgress);
+                };
+                cancelAnimationFrame(animationRef.current);
+                updateProgress();
+            };
+
+            const switchSource = (label) => {
+                if (mode !== 'test') return;
+                const prevLabel = activeSource;
+                setActiveSource(label);
+
+                if (isPlayingRef.current && sourceNodeRef.current) {
+                    if (prevLabel !== label) {
+                        const targetId = label === 'A' ? currentPair.hiddenA : currentPair.hiddenB;
+                        const profile = eqProfiles.find(p => p.id === targetId);
+                        if (profile && currentSong) {
+                            sourceNodeRef.current.disconnect();
+                            buildEQChainSync(profile, currentSong.buffer, currentSong);
+                            sourceNodeRef.current.connect(songLoudnessGainRef.current);
+                        }
+                    }
+                } else if (!isPlayingRef.current) {
+                    playAudio(true, null, false, label);
+                }
+            };
+
+            const handleVote = (vote) => {
                 sourceNodeRef.current?.stop();
                 setIsPlaying(false); isPlayingRef.current = false;
                 cancelAnimationFrame(animationRef.current);
-                return;
-            }
 
-            sourceNodeRef.current?.stop();
-            const source = ctx.createBufferSource();
-            source.buffer = song.buffer;
-            source.loop = true;
-            sourceNodeRef.current = source;
+                const duration = roundStartTime ? Date.now() - roundStartTime : null;
+                const pA = eqProfiles.find(p => p.id === currentPair.hiddenA);
+                const pB = eqProfiles.find(p => p.id === currentPair.hiddenB);
+                const score = vote === 'A' ? 1 : vote === 'B' ? 0 : 0.5;
+                const upA = calculateRatingUpdate(pA, pB, score);
+                const upB = calculateRatingUpdate(pB, pA, 1 - score);
 
-            let prof = null;
-            const src = forcedSource || activeSource;
-            if (mode === 'test' && src) prof = eqProfiles.find(p => p.id === (src === 'A' ? currentPair.hiddenA : currentPair.hiddenB));
-            else if (mode === 'setup') prof = eqProfiles[0];
-            
-            if (!prof) prof = { bands: [], preamp: 0 };
-            
-            buildEQChainSync(prof, song.buffer);
-            source.connect(preampNodeRef.current);
+                const songId = currentSong?.id || null;
 
-            const offset = startFromZero ? 0 : (pauseTimeRef.current % song.duration) || 0;
-            startTimeRef.current = ctx.currentTime - offset;
-            source.start(0, offset);
-            
-            setIsPlaying(true); isPlayingRef.current = true;
+                setEqProfiles(prev => prev.map(p => {
+                    const isA = p.id === pA.id;
+                    const isB = p.id === pB.id;
+                    if (isA || isB) {
+                        const stats = isA ? upA : upB;
+                        const s = isA ? score : 1 - score;
+                        const updated = {
+                            ...p,
+                            rating: stats.rating,
+                            rd: stats.rd,
+                            vol: stats.vol,
+                            battles: (p.battles || 0) + 1,
+                            wins: (p.wins || 0) + (s === 1 ? 1 : 0),
+                            draws: (p.draws || 0) + (s === 0.5 ? 1 : 0)
+                        };
+                        // Per-song rating update
+                        if (songId) {
+                            const psr = { ...(p.perSongRatings || {}) };
+                            const myPsr = psr[songId] || { rating: 1500, rd: 350, vol: 0.06 };
+                            const oppProfile = isA ? pB : pA;
+                            const oppPsr = (oppProfile.perSongRatings || {})[songId] || { rating: 1500, rd: 350, vol: 0.06 };
+                            const psUpdate = calculateRatingUpdate(myPsr, oppPsr, s);
+                            psr[songId] = psUpdate;
+                            updated.perSongRatings = psr;
+                        }
+                        return updated;
+                    }
+                    return p;
+                }));
 
-            const songDur = song.duration;
-            const updateProgress = () => {
-                if (!isPlayingRef.current) return;
-                const elapsed = (ctx.currentTime - startTimeRef.current) % songDur;
-                setCurrentTime(elapsed);
-                animationRef.current = requestAnimationFrame(updateProgress);
+                setHistory(h => [{ timestamp: Date.now(), winnerId: vote === 'A' ? pA.id : vote === 'B' ? pB.id : null, vote, song: currentSong?.name || "Unknown", songId: songId, profileA: pA.name, profileB: pB.name, idA: pA.id, idB: pB.id, duration, ratingA: Math.round(upA.rating), ratingB: Math.round(upB.rating) }, ...h]);
+                startTestRound(true);
             };
-            cancelAnimationFrame(animationRef.current);
-            updateProgress();
-          };
 
-          const switchSource = (label) => {
-              if (mode !== 'test') return;
-              const prevLabel = activeSource;
-              setActiveSource(label);
-              
-              if (isPlayingRef.current && sourceNodeRef.current) {
-                  if (prevLabel !== label) {
-                      const targetId = label === 'A' ? currentPair.hiddenA : currentPair.hiddenB;
-                      const profile = eqProfiles.find(p => p.id === targetId);
-                      if (profile && currentSong) {
-                          sourceNodeRef.current.disconnect();
-                          buildEQChainSync(profile, currentSong.buffer);
-                          sourceNodeRef.current.connect(preampNodeRef.current);
-                      }
-                  }
-              } else if (!isPlayingRef.current) {
-                  playAudio(true, null, false, label);
-              }
-          };
+            const startTestRound = async (next = false) => {
+                const active = eqProfiles.filter(p => p.enabled !== false);
+                if (active.length < 2 || playlist.length === 0) return alert("Settings required: Load songs and enable at least 2 profiles.");
+                let idx = currentSongIndex;
+                if (next) { idx = (idx + 1) % playlist.length; setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); }
+                const song = playlist[idx];
+                let q = [...testQueue];
+                if (q.length === 0) {
+                    for (let i = 0; i < active.length; i++) for (let j = i + 1; j < active.length; j++) q.push([active[i].id, active[j].id]);
+                    q.sort(() => 0.5 - Math.random());
+                }
+                const [id1, id2] = q.shift(); setTestQueue(q);
+                const p1 = eqProfiles.find(p => p.id === id1);
+                const p2 = eqProfiles.find(p => p.id === id2);
+                await Promise.all([calculateLoudnessCompensation(p1, song.buffer), calculateLoudnessCompensation(p2, song.buffer)]);
+                const isRev = Math.random() > 0.5;
+                setCurrentPair({ hiddenA: isRev ? id2 : id1, hiddenB: isRev ? id1 : id2 });
+                setActiveSource(null); setMode('test');
+                setRoundStartTime(Date.now());
+            };
 
-          const handleVote = (vote) => {
-              sourceNodeRef.current?.stop();
-              setIsPlaying(false); isPlayingRef.current = false;
-              cancelAnimationFrame(animationRef.current);
+            const updateBand = (pid, i, f, v) => setEqProfiles(p => p.map(pr => pr.id !== pid ? pr : { ...pr, bands: pr.bands.map((b, idx) => idx === i ? { ...b, [f]: f === 'type' ? v : parseFloat(v) } : b), rawCode: serializeToAPO({ ...pr, bands: pr.bands.map((b, idx) => idx === i ? { ...b, [f]: f === 'type' ? v : parseFloat(v) } : b) }) }));
+            const addBand = (pid) => setEqProfiles(p => p.map(pr => pr.id !== pid ? pr : { ...pr, bands: [...pr.bands, { freq: 1000, gain: 0, q: 1, type: 'peaking' }], rawCode: serializeToAPO({ ...pr, bands: [...pr.bands, { freq: 1000, gain: 0, q: 1, type: 'peaking' }] }) }));
+            const removeBand = (pid, i) => setEqProfiles(p => p.map(pr => pr.id !== pid ? pr : { ...pr, bands: pr.bands.filter((_, idx) => idx !== i), rawCode: serializeToAPO({ ...pr, bands: pr.bands.filter((_, idx) => idx !== i) }) }));
+            const toggleProfileEnabled = (pid) => setEqProfiles(p => p.map(pr => pr.id !== pid ? pr : { ...pr, enabled: pr.enabled === false ? true : false }));
 
-              const pA = eqProfiles.find(p => p.id === currentPair.hiddenA);
-              const pB = eqProfiles.find(p => p.id === currentPair.hiddenB);
-              const score = vote === 'A' ? 1 : vote === 'B' ? 0 : 0.5;
-              const upA = calculateRatingUpdate(pA, pB, score);
-              const upB = calculateRatingUpdate(pB, pA, 1 - score);
+            const executeReset = () => {
+                setHistory([]);
+                setEqProfiles(p => p.map(x => ({ ...x, rating: 1500, rd: 350, vol: 0.06, wins: 0, battles: 0, draws: 0, perSongRatings: {} })));
+                setIsResetConfirming(false);
+            };
 
-              setEqProfiles(prev => prev.map(p => {
-                  const isA = p.id === pA.id;
-                  const isB = p.id === pB.id;
-                  if (isA || isB) {
-                      const stats = isA ? upA : upB;
-                      const s = isA ? score : 1 - score;
-                      return {
-                          ...p,
-                          rating: stats.rating,
-                          rd: stats.rd,
-                          battles: (p.battles||0) + 1,
-                          wins: (p.wins||0) + (s === 1 ? 1 : 0),
-                          draws: (p.draws||0) + (s === 0.5 ? 1 : 0)
-                      };
-                  }
-                  return p;
-              }));
+            const getConvergenceBadge = (rd) => {
+                if (rd <= 80) return { label: 'Stable', color: 'text-green-400 bg-green-500/10 border-green-500/20' };
+                if (rd <= 150) return { label: 'Converging', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' };
+                return { label: 'Provisional', color: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20' };
+            };
 
-              setHistory(h => [{ timestamp: Date.now(), winnerId: vote==='A'?pA.id:vote==='B'?pB.id:null, vote, song: currentSong?.name || "Unknown", profileA: pA.name, profileB: pB.name, idA: pA.id, idB: pB.id }, ...h]);
-              startTestRound(true);
-          };
+            const exportData = (type, format) => {
+                let data, filename;
+                if (type === 'rankings') {
+                    const ranked = eqProfiles.filter(p => p.enabled !== false).sort((a, b) => (b.rating || 1500) - (a.rating || 1500));
+                    if (format === 'csv') {
+                        const rows = [['Rank', 'Name', 'Rating', 'RD', 'Volatility', 'Wins', 'Losses', 'Draws', 'Battles'].join(',')];
+                        ranked.forEach((p, i) => rows.push([i + 1, `"${p.name}"`, Math.round(p.rating || 1500), Math.round(p.rd || 350), (p.vol || 0.06).toFixed(6), p.wins || 0, (p.battles || 0) - (p.wins || 0) - (p.draws || 0), p.draws || 0, p.battles || 0].join(',')));
+                        data = rows.join('\n'); filename = 'eq_rankings.csv';
+                    } else {
+                        data = JSON.stringify(ranked.map((p, i) => ({ rank: i + 1, name: p.name, rating: Math.round(p.rating || 1500), rd: Math.round(p.rd || 350), vol: p.vol || 0.06, wins: p.wins || 0, losses: (p.battles || 0) - (p.wins || 0) - (p.draws || 0), draws: p.draws || 0 })), null, 2);
+                        filename = 'eq_rankings.json';
+                    }
+                } else {
+                    if (format === 'csv') {
+                        const rows = [['Timestamp', 'Song', 'Profile A', 'Profile B', 'Result', 'Duration (s)', 'Rating A', 'Rating B'].join(',')];
+                        history.forEach(h => rows.push([new Date(h.timestamp).toISOString(), `"${h.song}"`, `"${h.profileA}"`, `"${h.profileB}"`, h.vote, h.duration ? (h.duration / 1000).toFixed(1) : '', h.ratingA || '', h.ratingB || ''].join(',')));
+                        data = rows.join('\n'); filename = 'eq_history.csv';
+                    } else {
+                        data = JSON.stringify(history, null, 2); filename = 'eq_history.json';
+                    }
+                }
+                const blob = new Blob([data], { type: format === 'csv' ? 'text/csv' : 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+                URL.revokeObjectURL(url);
+            };
 
-          const startTestRound = async (next = false) => {
-              const active = eqProfiles.filter(p => p.enabled !== false);
-              if (active.length < 2 || playlist.length === 0) return alert("Settings required: Load songs and enable at least 2 profiles.");
-              let idx = currentSongIndex;
-              if (next) { idx = (idx + 1) % playlist.length; setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); }
-              const song = playlist[idx];
-              let q = [...testQueue];
-              if (q.length === 0) {
-                  for (let i=0; i<active.length; i++) for (let j=i+1; j<active.length; j++) q.push([active[i].id, active[j].id]);
-                  q.sort(() => 0.5 - Math.random());
-              }
-              const [id1, id2] = q.shift(); setTestQueue(q);
-              const p1 = eqProfiles.find(p => p.id === id1);
-              const p2 = eqProfiles.find(p => p.id === id2);
-              await Promise.all([calculateLoudnessCompensation(p1, song.buffer), calculateLoudnessCompensation(p2, song.buffer)]);
-              const isRev = Math.random() > 0.5;
-              setCurrentPair({ hiddenA: isRev ? id2 : id1, hiddenB: isRev ? id1 : id2 });
-              setActiveSource(null); setMode('test');
-          };
+            const exportResultsAsImage = () => {
+                const ranked = eqProfiles.filter(p => p.enabled !== false).sort((a, b) => (b.rating || 1500) - (a.rating || 1500));
+                const cs = getComputedStyle(document.documentElement);
+                const hslVar = (name) => `hsl(${cs.getPropertyValue(name).trim()})`;
+                const hslaVar = (name, a) => `hsl(${cs.getPropertyValue(name).trim()} / ${a})`;
+                const bg = hslVar('--background');
+                const fg = hslVar('--foreground');
+                const mutedFg = hslVar('--muted-foreground');
+                const borderC = hslVar('--border');
+                const headerBg = hslaVar('--muted', 0.5);
+                const isDark = theme === 'dark';
 
-          const updateBand = (pid, i, f, v) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands: pr.bands.map((b,idx)=>idx===i?{...b,[f]:f==='type'?v:parseFloat(v)}:b), rawCode:serializeToAPO({...pr,bands:pr.bands.map((b,idx)=>idx===i?{...b,[f]:f==='type'?v:parseFloat(v)}:b)})}));
-          const addBand = (pid) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands:[...pr.bands,{freq:1000,gain:0,q:1,type:'peaking'}], rawCode:serializeToAPO({...pr,bands:[...pr.bands,{freq:1000,gain:0,q:1,type:'peaking'}]})}));
-          const removeBand = (pid, i) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, bands:pr.bands.filter((_,idx)=>idx!==i), rawCode:serializeToAPO({...pr,bands:pr.bands.filter((_,idx)=>idx!==i)})}));
-          const toggleProfileEnabled = (pid) => setEqProfiles(p => p.map(pr => pr.id!==pid?pr:{...pr, enabled: pr.enabled===false?true:false}));
-          
-          const executeReset = () => { 
-              setHistory([]); 
-              setEqProfiles(p => p.map(x => ({...x, rating:1500, rd:350, wins:0, battles:0, draws:0}))); 
-              setIsResetConfirming(false); 
-          };
-          
-          const formatTimeDisplay = (s) => { const m=Math.floor(s/60); const sc=Math.floor(s%60); return `${m}:${sc.toString().padStart(2,'0')}`; };
-          
-          const progressPercent = currentSong ? (currentTime / currentSong.duration) * 100 : 0;
-          const volumePercent = volume * 100;
+                const dpr = 2;
+                const sans = `"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif`;
+                const mono = `"Cascadia Code", "Consolas", ui-monospace, monospace`;
+                const W = 900 * dpr, rowH = 36 * dpr, headerH = 44 * dpr, titleH = 50 * dpr, padX = 24 * dpr, padY = 24 * dpr;
+                const graphH = 280 * dpr;
+                const radius = 12 * dpr;
+                const gap = 48 * dpr;
+                const historyRows = Math.min(history.length, 15);
+                const leagueActive = eqProfiles.filter(p => p.enabled !== false);
 
-          return (
-            <div className="min-h-screen pb-20 bg-background text-foreground">
-              <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border text-sm">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                  <div className="flex items-center gap-2"><Activity size={20} className="text-primary" /><h1 className="font-bold">EQ Blind Test v2</h1></div>
-                  <nav className="flex gap-4 font-medium">
-                    <button onClick={() => setMode('setup')} className={mode === 'setup' ? 'text-primary' : 'text-muted-foreground'}>Setup</button>
-                    <button onClick={() => { if(mode !== 'test') startTestRound(false); else setMode('test'); }} className={mode === 'test' ? 'text-primary' : 'text-muted-foreground'}>Test</button>
-                    <button onClick={() => setMode('results')} className={mode === 'results' ? 'text-primary' : 'text-muted-foreground'}>Results</button>
-                  </nav>
-                </div>
-              </header>
+                let totalH = padY + titleH + (headerH + ranked.length * rowH);
+                if (history.length > 0) totalH += gap + titleH + graphH;
+                if (leagueActive.length > 0) totalH += gap + titleH + (headerH + leagueActive.length * rowH);
+                totalH += padY;
 
-              <main className="container mx-auto px-4 py-8 max-w-4xl relative">
-                <div className="bg-muted/50 rounded-xl p-6 mb-8 border border-border relative text-sm">
-                    {isSongLoading && (
-                        <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-xl z-20 backdrop-blur-sm text-center">
-                            <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-lg border border-border"><Loader2 className="spin size-4" /><span>{loadingMessage}</span></div>
+                const canvas = document.createElement('canvas');
+                canvas.width = W; canvas.height = totalH;
+                const cx = canvas.getContext('2d');
+                cx.scale(1, 1);
+
+                cx.fillStyle = bg; cx.fillRect(0, 0, W, totalH);
+
+                const roundRect = (ctx, x, y, width, height, r) => {
+                    ctx.beginPath();
+                    ctx.moveTo(x + r, y);
+                    ctx.lineTo(x + width - r, y);
+                    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+                    ctx.lineTo(x + width, y + height - r);
+                    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+                    ctx.lineTo(x + r, y + height);
+                    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+                    ctx.lineTo(x, y + r);
+                    ctx.quadraticCurveTo(x, y, x + r, y);
+                    ctx.closePath();
+                };
+
+                let y = padY;
+
+                // --- Ranking Title ---
+                cx.fillStyle = fg; cx.font = `bold ${22 * dpr}px ${sans}`;
+                cx.fillText('Ranking', padX, y + 30 * dpr);
+                cx.fillStyle = mutedFg; cx.font = `${11 * dpr}px ${sans}`;
+                cx.fillText(new Date().toLocaleString(), W - padX - 180 * dpr, y + 30 * dpr);
+                y += titleH;
+
+                // --- Ranking Table Container ---
+                const rankTableH = headerH + ranked.length * rowH;
+                cx.save();
+                roundRect(cx, padX, y, W - 2 * padX, rankTableH, radius);
+                cx.strokeStyle = borderC; cx.lineWidth = 1 * dpr; cx.stroke();
+                cx.clip();
+
+                cx.fillStyle = headerBg; cx.fillRect(padX, y, W - 2 * padX, headerH);
+                cx.fillStyle = mutedFg; cx.font = `bold ${10 * dpr}px ${sans}`;
+
+                const tableCols = [
+                    { key: 'rank', label: 'RANK', x: padX + 16 * dpr, align: 'left' },
+                    { key: 'name', label: 'NAME', x: padX + 54 * dpr, align: 'left' },
+                    { key: 'rating', label: 'RATING', x: padX + 400 * dpr, align: 'right' },
+                    { key: 'rd', label: 'RD', x: padX + 460 * dpr, align: 'right' },
+                    { key: 'vol', label: 'σ', x: padX + 540 * dpr, align: 'right' },
+                    { key: 'status', label: 'STATUS', x: padX + 630 * dpr, align: 'right' },
+                    { key: 'winrate', label: 'WIN RATE', x: padX + 730 * dpr, align: 'right' },
+                    { key: 'wld', label: 'W/L/D', x: W - padX - 16 * dpr, align: 'right' }
+                ];
+
+                tableCols.forEach(col => {
+                    cx.textAlign = col.align;
+                    cx.fillText(col.label, col.x, y + 28 * dpr);
+                });
+                cx.textAlign = 'left';
+
+                cx.beginPath(); cx.moveTo(padX, y + headerH); cx.lineTo(W - padX, y + headerH); cx.strokeStyle = borderC; cx.stroke();
+                y += headerH;
+
+                ranked.forEach((p, i) => {
+                    tableCols.forEach(col => {
+                        cx.textAlign = col.align;
+                        let val = '', font = '', fill = fg;
+                        if (col.key === 'rank') { val = i + 1; font = `bold ${12 * dpr}px ${mono}`; fill = mutedFg; }
+                        else if (col.key === 'name') { val = p.name.substring(0, 35); font = `${13 * dpr}px ${sans}`; }
+                        else if (col.key === 'rating') { val = Math.round(p.rating || 1500); font = `bold ${13 * dpr}px ${mono}`; }
+                        else if (col.key === 'rd') { val = `±${Math.round(p.rd || 350)}`; font = `${12 * dpr}px ${mono}`; fill = mutedFg; }
+                        else if (col.key === 'vol') { val = (p.vol || 0.06).toFixed(6); font = `${12 * dpr}px ${mono}`; fill = mutedFg; }
+                        else if (col.key === 'status') {
+                            const badge = getConvergenceBadge(p.rd || 350);
+                            val = badge.label;
+                            font = `bold ${10 * dpr}px ${sans}`;
+                            fill = badge.label === 'Stable' ? '#4ade80' : badge.label === 'Converging' ? '#facc15' : mutedFg;
+                        }
+                        else if (col.key === 'winrate') { val = p.battles ? `${Math.round((p.wins / p.battles) * 100)}%` : '0%'; font = `bold ${12 * dpr}px ${sans}`; }
+                        else if (col.key === 'wld') { val = `${p.wins || 0}/${(p.battles || 0) - (p.wins || 0) - (p.draws || 0)}/${p.draws || 0}`; font = `${12 * dpr}px ${mono}`; fill = mutedFg; }
+
+                        cx.font = font;
+                        cx.fillStyle = fill;
+                        cx.fillText(val, col.x, y + 24 * dpr);
+                    });
+
+                    if (i < ranked.length - 1) {
+                        cx.beginPath(); cx.moveTo(padX, y + rowH); cx.lineTo(W - padX, y + rowH); cx.strokeStyle = borderC; cx.stroke();
+                    }
+                    y += rowH;
+                });
+                cx.textAlign = 'left';
+                cx.restore();
+                y += gap;
+
+                // --- Rating Progression Graph ---
+                if (history.length > 0) {
+                    cx.fillStyle = fg; cx.font = `bold ${18 * dpr}px ${sans}`;
+                    cx.fillText('Rating Progression', padX, y + 30 * dpr);
+                    y += titleH;
+
+                    const gx = padX, gy = y, gw = W - 2 * padX, gh = graphH;
+                    cx.save();
+                    roundRect(cx, gx, gy, gw, gh, radius);
+                    cx.strokeStyle = borderC; cx.lineWidth = 1 * dpr; cx.stroke();
+                    cx.clip();
+
+                    cx.fillStyle = isDark ? hslaVar('--background', 1) : '#fff'; cx.fillRect(gx, gy, gw, gh);
+
+                    const gColors = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#fb923c', '#f472b6', '#2dd4bf'];
+                    const active = eqProfiles.filter(p => p.enabled !== false);
+                    const reversed = [...history].reverse();
+                    const series = {};
+                    active.forEach(p => { series[p.id] = [{ x: 0, y: 1500 }]; });
+                    reversed.forEach((h, idx) => {
+                        active.forEach(p => {
+                            const arr = series[p.id];
+                            if (h.idA === p.id || h.idB === p.id) {
+                                const r = h.idA === p.id ? (h.ratingA || arr[arr.length - 1].y) : (h.ratingB || arr[arr.length - 1].y);
+                                arr.push({ x: idx + 1, y: r });
+                            }
+                        });
+                    });
+                    const allYs = Object.values(series).flat().map(pt => pt.y);
+                    const minYg = Math.floor((Math.min(...allYs) - 50) / 50) * 50;
+                    const maxYg = Math.ceil((Math.max(...allYs) + 50) / 50) * 50;
+                    const maxXg = reversed.length;
+                    const gPad = { l: 60 * dpr, r: 20 * dpr, t: 30 * dpr, b: 30 * dpr };
+                    const gpw = gw - gPad.l - gPad.r, gph = gh - gPad.t - gPad.b;
+                    const gToX = (x) => gx + gPad.l + (x / Math.max(maxXg, 1)) * gpw;
+                    const gToY = (yv) => gy + gPad.t + gph - ((yv - minYg) / Math.max(maxYg - minYg, 1)) * gph;
+
+                    cx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; cx.lineWidth = 1;
+                    for (let v = minYg; v <= maxYg; v += 50) {
+                        cx.beginPath(); cx.moveTo(gx + gPad.l, gToY(v)); cx.lineTo(gx + gw - gPad.r, gToY(v)); cx.stroke();
+                    }
+                    cx.fillStyle = mutedFg; cx.font = `${10 * dpr}px ${mono}`; cx.textAlign = 'right';
+                    for (let v = minYg; v <= maxYg; v += 100) {
+                        cx.fillText(v, gx + gPad.l - 8 * dpr, gToY(v) + 4 * dpr);
+                    }
+                    cx.textAlign = 'left';
+                    active.forEach((p, ci) => {
+                        const pts = series[p.id]; if (pts.length < 2) return;
+                        cx.strokeStyle = gColors[ci % gColors.length]; cx.lineWidth = 2 * dpr; cx.beginPath();
+                        pts.forEach((pt, j) => { j === 0 ? cx.moveTo(gToX(pt.x), gToY(pt.y)) : cx.lineTo(gToX(pt.x), gToY(pt.y)); });
+                        cx.stroke();
+                        const last = pts[pts.length - 1];
+                        cx.fillStyle = gColors[ci % gColors.length]; cx.beginPath(); cx.arc(gToX(last.x), gToY(last.y), 4 * dpr, 0, Math.PI * 2); cx.fill();
+                        const imgLabelText = `${p.name} (${Math.round(last.y)})`;
+                        cx.font = `${11 * dpr}px ${sans}`;
+                        const imgLabelW = cx.measureText(imgLabelText).width;
+                        const imgLabelX = gToX(last.x) + 8 * dpr + imgLabelW > gx + gw - gPad.r ? gToX(last.x) - imgLabelW - 8 * dpr : gToX(last.x) + 8 * dpr;
+                        cx.fillStyle = gColors[ci % gColors.length]; cx.textAlign = 'left';
+                        cx.fillText(imgLabelText, imgLabelX, gToY(last.y) + 4 * dpr);
+                    });
+                    cx.restore();
+                    y += graphH + gap;
+                }
+                // --- League Table ---
+                if (leagueActive.length > 0) {
+                    cx.fillStyle = fg; cx.font = `bold ${18 * dpr}px ${sans}`; cx.textAlign = 'left';
+                    cx.fillText('League Table', padX, y + 30 * dpr);
+                    y += titleH;
+
+                    const leagueTableH = headerH + leagueActive.length * rowH;
+                    cx.save();
+                    roundRect(cx, padX, y, W - 2 * padX, leagueTableH, radius);
+                    cx.strokeStyle = borderC; cx.lineWidth = 1 * dpr; cx.stroke();
+                    cx.clip();
+
+                    cx.fillStyle = headerBg; cx.fillRect(padX, y, W - 2 * padX, headerH);
+
+                    const numCols = leagueActive.length + 1;
+                    const colW = (W - 2 * padX) / numCols;
+
+                    cx.fillStyle = mutedFg; cx.font = `bold ${10 * dpr}px ${sans}`; cx.textAlign = 'center';
+                    leagueActive.forEach((p, i) => {
+                        const cellX = padX + colW * (i + 1) + colW / 2;
+                        cx.fillText(p.name.substring(0, 20), cellX, y + 28 * dpr);
+                    });
+
+                    cx.beginPath(); cx.moveTo(padX, y + headerH); cx.lineTo(W - padX, y + headerH); cx.strokeStyle = borderC; cx.stroke();
+                    y += headerH;
+
+                    leagueActive.forEach((row, rowIndex) => {
+                        cx.textAlign = 'left'; cx.fillStyle = fg; cx.font = `bold ${11 * dpr}px ${sans}`;
+                        cx.fillText(row.name.substring(0, 20), padX + 16 * dpr, y + 24 * dpr);
+
+                        cx.textAlign = 'center';
+                        leagueActive.forEach((col, colIndex) => {
+                            const cellX = padX + colW * (colIndex + 1);
+
+                            cx.beginPath(); cx.moveTo(cellX, y); cx.lineTo(cellX, y + rowH); cx.strokeStyle = borderC; cx.stroke();
+
+                            if (row.id === col.id) {
+                                cx.fillStyle = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+                                cx.fillRect(cellX, y, colW, rowH);
+                            } else {
+                                const m = history.filter(h => (h.idA === row.id && h.idB === col.id) || (h.idA === col.id && h.idB === row.id));
+                                let w = 0, l = 0, d = 0;
+                                m.forEach(x => { if (x.winnerId === row.id) w++; else if (x.winnerId === col.id) l++; else d++; });
+
+                                if (w + l + d > 0) {
+                                    const text = `${w}-${l}${d > 0 ? `-${d}` : ''}`;
+                                    cx.fillStyle = w > l ? '#4ade80' : l > w ? '#f87171' : mutedFg;
+                                    cx.font = `${11 * dpr}px ${sans}`;
+                                    cx.fillText(text, cellX + colW / 2, y + 24 * dpr);
+                                } else {
+                                    cx.fillStyle = mutedFg;
+                                    cx.font = `${11 * dpr}px ${sans}`;
+                                    cx.globalAlpha = 0.3;
+                                    cx.fillText("-", cellX + colW / 2, y + 24 * dpr);
+                                    cx.globalAlpha = 1.0;
+                                }
+                            }
+                        });
+
+                        if (rowIndex < leagueActive.length - 1) {
+                            cx.beginPath(); cx.moveTo(padX, y + rowH); cx.lineTo(W - padX, y + rowH); cx.strokeStyle = borderC; cx.stroke();
+                        }
+                        y += rowH;
+                    });
+                    cx.textAlign = 'left';
+                    cx.restore();
+                    y += gap;
+                }
+
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = `eq_shootout_results_${Date.now()}.png`; a.click();
+                    URL.revokeObjectURL(url);
+                });
+            };
+
+            const handlePlaylistDragStart = (e, idx) => { setDragIndex(idx); e.dataTransfer.effectAllowed = 'move'; };
+            const handlePlaylistDragOver = (e, idx) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverIndex(idx); };
+            const handlePlaylistDrop = (e, idx) => {
+                e.preventDefault();
+                if (dragIndex === null || dragIndex === idx) { setDragIndex(null); setDragOverIndex(null); return; }
+                setPlaylist(prev => {
+                    const next = [...prev];
+                    const [moved] = next.splice(dragIndex, 1);
+                    next.splice(idx, 0, moved);
+                    // Update currentSongIndex 
+                    if (currentSongIndex === dragIndex) setCurrentSongIndex(idx);
+                    else if (dragIndex < currentSongIndex && idx >= currentSongIndex) setCurrentSongIndex(currentSongIndex - 1);
+                    else if (dragIndex > currentSongIndex && idx <= currentSongIndex) setCurrentSongIndex(currentSongIndex + 1);
+                    return next;
+                });
+                setDragIndex(null); setDragOverIndex(null);
+            };
+            const handlePlaylistDragEnd = () => { setDragIndex(null); setDragOverIndex(null); };
+
+            const formatTimeDisplay = (s) => { const m = Math.floor(s / 60); const sc = Math.floor(s % 60); return `${m}:${sc.toString().padStart(2, '0')} `; };
+
+            const progressPercent = currentSong ? (currentTime / currentSong.duration) * 100 : 0;
+            const volumePercent = volume * 100;
+
+            return (
+                <div className="min-h-screen pb-20 bg-background text-foreground">
+                    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border text-sm">
+                        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-2"><Activity size={20} className="text-primary" /><h1 className="font-bold">EQ Shootout v2</h1></div>
+                            <nav className="flex gap-4 font-medium items-center">
+                                <button onClick={() => setMode('setup')} className={mode === 'setup' ? 'text-primary' : 'text-muted-foreground'}>Setup</button>
+                                <button onClick={() => { if (mode !== 'test') { if (currentPair && currentPair.hiddenA) setMode('test'); else startTestRound(false); } else setMode('test'); }} className={mode === 'test' ? 'text-primary' : 'text-muted-foreground'}>Test</button>
+                                <button onClick={() => setMode('results')} className={mode === 'results' ? 'text-primary' : 'text-muted-foreground'}>Results</button>
+                                <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors ml-2">{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button>
+                            </nav>
                         </div>
-                    )}
-                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
-                     <div className="flex items-center gap-3 overflow-hidden w-full md:w-auto">
-                         <button onClick={() => setShowPlaylist(!showPlaylist)} className={`shrink-0 p-2 rounded-lg transition-colors ${showPlaylist ? 'bg-primary text-primary-foreground' : 'bg-muted hover:text-foreground'}`}><List size={18} /></button>
-                         <label className="shrink-0 bg-muted text-foreground p-2 rounded-lg cursor-pointer hover:bg-muted/80 border border-border"><Upload size={18} /><input type="file" accept="audio/*" multiple onChange={handleFileSelect} className="hidden" /></label>
-                         <div className="truncate flex-1 min-w-0"><div className="text-sm font-bold truncate">{currentSong ? currentSong.name : "Please load songs"}</div><div className="text-xs text-muted-foreground">{playlist.length} Songs</div></div>
-                     </div>
-                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <span className="text-[10px] font-mono opacity-60">VOL</span>
-                        <input 
-                            type="range" 
-                            min="0" max="1" step="0.01" 
-                            value={volume} 
-                            onChange={e => { setVolume(parseFloat(e.target.value)); if(gainNodeRef.current) gainNodeRef.current.gain.value = parseFloat(e.target.value); }} 
-                            className="w-full md:w-24" 
-                            style={{ background: `linear-gradient(to right, white ${volumePercent}%, #333 ${volumePercent}%)` }}
-                        />
-                     </div>
-                  </div>
+                    </header>
 
-                  {showPlaylist && playlist.length > 0 && (
-                      <div className="mb-4 bg-background border border-border rounded-lg max-h-48 overflow-y-auto text-xs">
-                          <ul className="divide-y divide-border">
-                              {playlist.map((song, idx) => (
-                                  <li key={song.id} className={`p-2 flex items-center justify-between hover:bg-muted/30 ${currentSongIndex === idx ? 'bg-primary/10' : ''}`}>
-                                      <button onClick={() => { setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); playAudio(true, song, true); }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
-                                      <button onClick={() => removeSong(idx)} className="text-muted-foreground hover:text-destructive p-1"><X size={14} /></button>
-                                  </li>
-                              ))}
-                          </ul>
-                      </div>
-                  )}
+                    <main className="container mx-auto px-4 py-8 max-w-4xl relative">
+                        <div className="bg-muted/50 rounded-xl p-6 mb-8 border border-border relative text-sm">
+                            {isSongLoading && (
+                                <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-xl z-20 backdrop-blur-sm text-center">
+                                    <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-lg border border-border"><Loader2 className="spin size-4" /><span>{loadingMessage}</span></div>
+                                </div>
+                            )}
+                            <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
+                                <div className="flex items-center gap-3 overflow-hidden w-full md:w-auto">
+                                    <button onClick={() => setShowPlaylist(!showPlaylist)} className={`shrink-0 p-2 rounded-lg transition-colors ${showPlaylist ? 'bg-primary text-primary-foreground' : 'bg-muted hover:text-foreground'} `}><List size={18} /></button>
+                                    <label className="shrink-0 bg-muted text-foreground p-2 rounded-lg cursor-pointer hover:bg-muted/80 border border-border"><Upload size={18} /><input type="file" accept="audio/*" multiple onChange={handleFileSelect} className="hidden" /></label>
+                                    <div className="truncate flex-1 min-w-0"><div className="text-sm font-bold truncate">{currentSong ? currentSong.name : "Please load songs"}</div><div className="text-xs text-muted-foreground">{playlist.length} Songs</div></div>
+                                </div>
+                                <div className="flex items-center gap-3 w-full md:w-auto">
+                                    <span className="text-[10px] font-mono opacity-60">VOL</span>
+                                    <input
+                                        type="range"
+                                        min="0" max="1" step="0.01"
+                                        value={volume}
+                                        onChange={e => { setVolume(parseFloat(e.target.value)); if (gainNodeRef.current) gainNodeRef.current.gain.value = parseFloat(e.target.value); }}
+                                        className="w-full md:w-24"
+                                        style={{ background: `linear-gradient(to right, var(--slider-track-fill) ${volumePercent}%, var(--slider-track-bg) ${volumePercent}%)` }}
+                                    />
+                                </div>
+                            </div>
 
-                  <div className="flex items-center gap-4">
-                    <button onClick={() => playAudio()} disabled={!currentSong} className="size-12 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50">{isPlaying ? <Pause size={24} /> : <Play size={24} />}</button>
-                    <div className="w-full">
-                        <input 
-                            type="range" 
-                            min="0" max={currentSong?.duration || 100} step="0.1" 
-                            value={currentTime} 
-                            onChange={e => { pauseTimeRef.current = parseFloat(e.target.value); if(isPlaying) playAudio(true, null, false); else setCurrentTime(parseFloat(e.target.value)); }} 
-                            disabled={!currentSong} 
-                            className="w-full" 
-                            style={{ background: `linear-gradient(to right, white ${progressPercent}%, #333 ${progressPercent}%)` }}
-                        />
-                        <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1"><span>{formatTimeDisplay(currentTime)}</span><span>{formatTimeDisplay(currentSong?.duration || 0)}</span></div>
-                    </div>
-                  </div>
-                </div>
+                            {showPlaylist && playlist.length > 0 && (
+                                <div className="mb-4 bg-background border border-border rounded-lg max-h-48 overflow-y-auto text-xs">
+                                    <ul className="divide-y divide-border">
+                                        {playlist.map((song, idx) => (
+                                            <li key={song.id} draggable onDragStart={e => handlePlaylistDragStart(e, idx)} onDragOver={e => handlePlaylistDragOver(e, idx)} onDrop={e => handlePlaylistDrop(e, idx)} onDragEnd={handlePlaylistDragEnd} className={`p-2 flex items-center justify-between hover:bg-muted/30 cursor-grab ${currentSongIndex === idx ? 'bg-primary/10' : ''} ${dragIndex === idx ? 'dragging' : ''} ${dragOverIndex === idx ? 'drag-over' : ''} `}>
+                                                <div className="flex items-center gap-1 text-muted-foreground"><GripVertical size={12} /></div>
+                                                <button onClick={() => { setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); playAudio(true, song, true); }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
+                                                <button onClick={() => removeSong(idx)} className="text-muted-foreground hover:text-destructive p-1"><X size={14} /></button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
-                {mode === 'setup' && (
-                    <div className="space-y-6 animate-in fade-in text-sm">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Settings size={20} /> EQ Profiles</h2>
-                            <div className="flex gap-2">
-                                <label className="btn border border-border px-3 py-1.5 rounded-md text-xs cursor-pointer hover:bg-muted flex items-center gap-2"><Import size={12} /> Import<input type="file" multiple onChange={async (e) => {
-                                    const fs = Array.from(e.target.files);
-                                    for (const f of fs) {
-                                        const text = await f.text();
-                                        const data = { name: f.name.replace(/\.[^/.]+$/, ""), rawCode: text, ...parseEqualizerAPO(text) };
-                                        setEqProfiles(prev => [...prev, { ...data, id: Date.now().toString()+Math.random(), rating:1500, rd:350, wins:0, battles:0, enabled:true }]);
-                                    }
-                                }} className="hidden" /></label>
-                                <button onClick={() => setEqProfiles(p => [...p, { id: Date.now().toString(), name: 'New Profile', rawCode: '', bands: [], preamp: 0, rating:1500, rd:350, wins: 0, battles: 0, enabled: true }])} className="btn bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs flex items-center gap-2"><Plus size={12} /> New</button>
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => playAudio()} disabled={!currentSong} className="size-12 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50">{isPlaying ? <Pause size={24} /> : <Play size={24} />}</button>
+                                <div className="w-full">
+                                    <input
+                                        type="range"
+                                        min="0" max={currentSong?.duration || 100} step="0.1"
+                                        value={currentTime}
+                                        onChange={e => { pauseTimeRef.current = parseFloat(e.target.value); if (isPlaying) playAudio(true, null, false); else setCurrentTime(parseFloat(e.target.value)); }}
+                                        disabled={!currentSong}
+                                        className="w-full"
+                                        style={{ background: `linear-gradient(to right, var(--slider-track-fill) ${progressPercent}%, var(--slider-track-bg) ${progressPercent}%)` }}
+                                    />
+                                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1"><span>{formatTimeDisplay(currentTime)}</span><span>{formatTimeDisplay(currentSong?.duration || 0)}</span></div>
+                                </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-4">
-                            {eqProfiles.map(p => (
-                                <div key={p.id} className={`border rounded-xl p-4 bg-background shadow-sm transition-opacity ${p.enabled !== false ? 'border-border' : 'border-border/50 opacity-60'}`}>
-                                    <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
-                                        <input className="font-bold text-lg bg-transparent border-b border-transparent focus:border-primary outline-none flex-1" value={p.name} onChange={e => setEqProfiles(prev => prev.map(pr => pr.id === p.id ? {...pr, name: e.target.value} : pr))} />
-                                        <div className="flex gap-2 items-center">
-                                            <button onClick={() => toggleProfileEnabled(p.id)} className={`flex items-center gap-2 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors ${p.enabled !== false ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-zinc-800 text-zinc-500 border-zinc-700'}`}><Power size={10} />{p.enabled !== false ? 'Active' : 'Excluded'}</button>
-                                            <div className="flex bg-muted/50 rounded-lg p-1">
-                                                <button onClick={() => setEditorModes(v => ({...v, [p.id]: 'text'}))} className={`p-1.5 rounded-md ${editorModes[p.id] !== 'visual' ? 'bg-background shadow' : 'text-muted-foreground'}`}><FileText size={14} /></button>
-                                                <button onClick={() => setEditorModes(v => ({...v, [p.id]: 'visual'}))} className={`p-1.5 rounded-md ${editorModes[p.id] === 'visual' ? 'bg-background shadow' : 'text-muted-foreground'}`}><Sliders size={14} /></button>
-                                            </div>
-                                            <button onClick={() => setEqProfiles(prev => prev.filter(pr => pr.id !== p.id))} className="text-muted-foreground hover:text-destructive p-1"><Trash2 size={14} /></button>
-                                        </div>
-                                    </div>
-                                    {editorModes[p.id] === 'visual' ? (
-                                        <div className="space-y-2">
-                                            {p.bands.map((b, i) => (
-                                                <div key={i} className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2 rounded text-[10px] text-center">
-                                                    <div className="col-span-2 text-left"><select value={b.type} onChange={e => updateBand(p.id, i, 'type', e.target.value)} className="w-full bg-transparent border border-border rounded p-0.5"><option value="peaking">PK</option><option value="lowshelf">LS</option><option value="highshelf">HS</option></select></div>
-                                                    <div className="col-span-3"><input type="number" value={b.freq} onChange={e => updateBand(p.id, i, 'freq', e.target.value)} className="w-full bg-transparent text-center" />Hz</div>
-                                                    <div className="col-span-3"><input type="number" value={b.gain} onChange={e => updateBand(p.id, i, 'gain', e.target.value)} className="w-full bg-transparent text-center" />dB</div>
-                                                    <div className="col-span-3"><input type="number" value={b.q} onChange={e => updateBand(p.id, i, 'q', e.target.value)} className="w-full bg-transparent text-center" />Q</div>
-                                                    <div className="col-span-1 text-right"><button onClick={() => removeBand(p.id, i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={12} /></button></div>
-                                                </div>
-                                            ))}
-                                            <button onClick={() => addBand(p.id)} className="w-full py-1.5 border border-dashed border-border rounded text-[10px] text-muted-foreground hover:bg-muted transition-colors">+ Add Filter Band</button>
-                                        </div>
-                                    ) : (
-                                        <textarea className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none" defaultValue={p.rawCode} onChange={(e) => {
-                                            const text = e.target.value; const parsed = parseEqualizerAPO(text);
-                                            setEqProfiles(prev => prev.map(pr => pr.id === p.id ? { ...pr, bands: parsed.bands, preamp: parsed.preamp, rawCode: text } : pr));
-                                        }} />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
 
-                {mode === 'test' && (
-                    <div className="flex flex-col items-center gap-8 py-4 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
-                        <div className="text-center w-full">
-                            <div className="inline-block bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold mb-4 border border-white/20">Round {history.length + 1}</div>
-                            <h2 className="text-xl font-bold mb-1 text-sm">Blind A/B Test</h2>
-                            <p className="text-muted-foreground text-xs opacity-70 italic">Now Playing: {currentSong?.name || "..."}</p>
-                        </div>
-                        {currentPair.hiddenA && (
-                            <div className="w-full max-w-2xl mx-auto text-sm">
-                                <div className="grid grid-cols-2 gap-4 w-full h-64 mb-8">
-                                    <button onClick={() => switchSource('A')} className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col items-start p-6 text-left group ${activeSource === 'A' ? 'border-white bg-zinc-900 shadow-xl opacity-100' : 'border-zinc-800 bg-black opacity-40 hover:opacity-100'}`}>
-                                        <span className={`text-3xl font-bold mb-2 ${activeSource === 'A' ? 'text-white' : 'text-zinc-500'}`}>Play A</span>
-                                        <div className="flex-1 w-full flex items-end"><Visualizer analyser={analyserNodeRef.current} isActive={activeSource === 'A' && isPlaying} /></div>
-                                    </button>
-                                    <button onClick={() => switchSource('B')} className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col items-start p-6 text-left group ${activeSource === 'B' ? 'border-white bg-zinc-900 shadow-xl opacity-100' : 'border-zinc-800 bg-black opacity-40 hover:opacity-100'}`}>
-                                        <span className={`text-3xl font-bold mb-2 ${activeSource === 'B' ? 'text-white' : 'text-zinc-500'}`}>Play B</span>
-                                        <div className="flex-1 w-full flex items-end"><Visualizer analyser={analyserNodeRef.current} isActive={activeSource === 'B' && isPlaying} /></div>
-                                    </button>
+                        {mode === 'setup' && (
+                            <div className="space-y-6 animate-in fade-in text-sm">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-xl font-bold flex items-center gap-2"><Settings size={20} /> EQ Profiles</h2>
+                                    <div className="flex gap-2">
+                                        <label className="btn border border-border px-3 py-1.5 rounded-md text-xs cursor-pointer hover:bg-muted flex items-center gap-2"><Import size={12} /> Import<input type="file" multiple onChange={async (e) => {
+                                            const fs = Array.from(e.target.files);
+                                            for (const f of fs) {
+                                                const text = await f.text();
+                                                const data = { name: f.name.replace(/\.[^/.]+$/, ""), rawCode: text, ...parseEqualizerAPO(text) };
+                                                setEqProfiles(prev => [...prev, { ...data, id: Date.now().toString() + Math.random(), rating: 1500, rd: 350, vol: 0.06, wins: 0, battles: 0, draws: 0, enabled: true, perSongRatings: {} }]);
+                                            }
+                                        }} className="hidden" /></label>
+                                        <button onClick={() => setEqProfiles(p => [...p, { id: Date.now().toString(), name: 'New Profile', rawCode: '', bands: [], preamp: 0, rating: 1500, rd: 350, vol: 0.06, wins: 0, battles: 0, draws: 0, enabled: true, perSongRatings: {} }])} className="btn bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs flex items-center gap-2"><Plus size={12} /> New</button>
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-4 w-full h-16">
-                                    <button onClick={() => handleVote(activeSource)} className={`col-span-2 h-full font-bold border rounded-xl transition-all ${!activeSource ? 'border-white/10 bg-black opacity-50' : 'border-white/20 bg-white/5 text-white hover:bg-white hover:text-black shadow-lg'}`} disabled={!activeSource}>Prefer {activeSource || '...'}</button>
-                                    <button onClick={() => handleVote('Tie')} className="h-full border border-white/10 bg-black/20 text-muted-foreground rounded-xl hover:bg-white/10 hover:text-white transition-all">Tie</button>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {eqProfiles.map(p => (
+                                        <div key={p.id} className={`border rounded-xl p-4 bg-background shadow-sm transition-opacity ${p.enabled !== false ? 'border-border' : 'border-border/50 opacity-60'} `}>
+                                            <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
+                                                <input className="font-bold text-lg bg-transparent border-b border-transparent focus:border-primary outline-none flex-1" value={p.name} onChange={e => setEqProfiles(prev => prev.map(pr => pr.id === p.id ? { ...pr, name: e.target.value } : pr))} />
+                                                <div className="flex gap-2 items-center">
+                                                    <button onClick={() => toggleProfileEnabled(p.id)} className={`flex items-center gap-2 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors ${p.enabled !== false ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-zinc-800 text-zinc-500 border-zinc-700'} `}><Power size={10} />{p.enabled !== false ? 'Active' : 'Excluded'}</button>
+                                                    <div className="flex bg-muted/50 rounded-lg p-1">
+                                                        <button onClick={() => setEditorModes(v => ({ ...v, [p.id]: 'text' }))} className={`p-1.5 rounded-md ${editorModes[p.id] !== 'visual' ? 'bg-background shadow' : 'text-muted-foreground'} `}><FileText size={14} /></button>
+                                                        <button onClick={() => setEditorModes(v => ({ ...v, [p.id]: 'visual' }))} className={`p-1.5 rounded-md ${editorModes[p.id] === 'visual' ? 'bg-background shadow' : 'text-muted-foreground'} `}><Sliders size={14} /></button>
+                                                    </div>
+                                                    <button onClick={() => setEqProfiles(prev => prev.filter(pr => pr.id !== p.id))} className="text-muted-foreground hover:text-destructive p-1"><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                            {editorModes[p.id] === 'visual' ? (
+                                                <div className="space-y-2">
+                                                    {p.bands.map((b, i) => (
+                                                        <div key={i} className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2 rounded text-[10px] text-center">
+                                                            <div className="col-span-2 text-left"><select value={b.type} onChange={e => updateBand(p.id, i, 'type', e.target.value)} className="w-full bg-transparent border border-border rounded p-0.5"><option value="peaking">PK</option><option value="lowshelf">LS</option><option value="highshelf">HS</option></select></div>
+                                                            <div className="col-span-3"><input type="number" value={b.freq} onChange={e => updateBand(p.id, i, 'freq', e.target.value)} className="w-full bg-transparent text-center" />Hz</div>
+                                                            <div className="col-span-3"><input type="number" value={b.gain} onChange={e => updateBand(p.id, i, 'gain', e.target.value)} className="w-full bg-transparent text-center" />dB</div>
+                                                            <div className="col-span-3"><input type="number" value={b.q} onChange={e => updateBand(p.id, i, 'q', e.target.value)} className="w-full bg-transparent text-center" />Q</div>
+                                                            <div className="col-span-1 text-right"><button onClick={() => removeBand(p.id, i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={12} /></button></div>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => addBand(p.id)} className="w-full py-1.5 border border-dashed border-border rounded text-[10px] text-muted-foreground hover:bg-muted transition-colors">+ Add Filter Band</button>
+                                                </div>
+                                            ) : (
+                                                <textarea className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none" defaultValue={p.rawCode} onChange={(e) => {
+                                                    const text = e.target.value; const parsed = parseEqualizerAPO(text);
+                                                    setEqProfiles(prev => prev.map(pr => pr.id === p.id ? { ...pr, bands: parsed.bands, preamp: parsed.preamp, rawCode: text } : pr));
+                                                }} />
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
-                    </div>
-                )}
 
-                {mode === 'results' && (
-                    <div className="space-y-12 animate-in fade-in text-sm">
-                        <div className="flex justify-end gap-3">
-                             {!isResetConfirming ? (
-                                 <button onClick={() => setIsResetConfirming(true)} className="border border-red-500/50 text-red-500 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><RotateCcw size={14} /> Reset History</button>
-                             ) : (
-                                 <div className="flex items-center gap-2 text-sm"><span className="text-[10px] text-red-400 font-bold flex items-center gap-1"><AlertCircle size={12}/> Are you sure?</span><button onClick={executeReset} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-700">Yes, Reset</button><button onClick={() => setIsResetConfirming(false)} className="bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg text-[10px]">Cancel</button></div>
-                             )}
-                        </div>
-                        <section>
-                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Award size={20} /> Ranking</h2>
-                            <div className="bg-background border border-border rounded-xl overflow-hidden text-xs">
-                                <table className="w-full text-left">
-                                    <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider"><tr><th className="p-3">Rank</th><th className="p-3">Name</th><th className="p-3 text-right">Rating</th><th className="p-3 text-right">Dev (±σ)</th><th className="p-3 text-right">Win Rate</th><th className="p-3 text-right">W/L/D</th></tr></thead>
-                                    <tbody>{eqProfiles.filter(p => p.enabled !== false).sort((a,b) => (b.rating || 1500) - (a.rating || 1500)).map((p, i) => (
-                                        <tr key={p.id} className="border-b border-border last:border-0">
-                                            <td className="p-3 font-mono font-bold text-muted-foreground">{i+1}</td>
-                                            <td className="p-3 font-medium">{p.name}</td>
-                                            <td className="p-3 text-right font-bold text-primary">{Math.round(p.rating || 1500)}</td>
-                                            <td className="p-3 text-right font-mono text-muted-foreground">±{Math.round(p.rd || 350)}</td>
-                                            <td className="p-3 text-right font-bold">{p.battles ? Math.round((p.wins / p.battles) * 100) : 0}%</td>
-                                            <td className="p-3 text-right text-muted-foreground">{p.wins || 0}/{(p.battles||0)-(p.wins||0)-(p.draws||0)}/{p.draws||0}</td>
-                                        </tr>
-                                    ))}</tbody>
-                                </table>
+                        {mode === 'test' && (
+                            <div className="flex flex-col items-center gap-8 py-4 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+                                <div className="text-center w-full">
+                                    <div className="inline-block bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold mb-4 border border-white/20">Round {history.length + 1}</div>
+                                    <h2 className="text-xl font-bold mb-1 text-sm">Blind A/B Test</h2>
+                                    <p className="text-muted-foreground text-xs opacity-70 italic">Now Playing: {currentSong?.name || "..."}</p>
+                                </div>
+                                {currentPair.hiddenA && (
+                                    <div className="w-full max-w-2xl mx-auto text-sm">
+                                        <div className="grid grid-cols-2 gap-4 w-full h-64 mb-8">
+                                            <button onClick={() => switchSource('A')} className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col items-start p-6 text-left group ${activeSource === 'A' ? 'border-white bg-zinc-900 shadow-xl opacity-100' : 'border-zinc-800 bg-black opacity-40 hover:opacity-100'} `}>
+                                                <span className={`text-3xl font-bold mb-2 ${activeSource === 'A' ? 'text-white' : 'text-zinc-500'} `}>Play A</span>
+                                                <div className="flex-1 w-full flex items-end"><Visualizer analyser={analyserNodeRef.current} isActive={activeSource === 'A' && isPlaying} /></div>
+                                            </button>
+                                            <button onClick={() => switchSource('B')} className={`relative rounded-2xl border-2 transition-all duration-300 overflow-hidden flex flex-col items-start p-6 text-left group ${activeSource === 'B' ? 'border-white bg-zinc-900 shadow-xl opacity-100' : 'border-zinc-800 bg-black opacity-40 hover:opacity-100'} `}>
+                                                <span className={`text-3xl font-bold mb-2 ${activeSource === 'B' ? 'text-white' : 'text-zinc-500'} `}>Play B</span>
+                                                <div className="flex-1 w-full flex items-end"><Visualizer analyser={analyserNodeRef.current} isActive={activeSource === 'B' && isPlaying} /></div>
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-4 w-full h-16">
+                                            <button onClick={() => handleVote(activeSource)} className={`col-span-2 h-full font-bold border rounded-xl transition-all ${!activeSource ? 'border-white/10 bg-black opacity-50' : 'border-white/20 bg-white/5 text-white hover:bg-white hover:text-black shadow-lg'} `} disabled={!activeSource}>Prefer {activeSource || '...'}</button>
+                                            <button onClick={() => handleVote('Tie')} className="h-full border border-white/10 bg-black/20 text-muted-foreground rounded-xl hover:bg-white/10 hover:text-white transition-all">Tie</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </section>
-                        <section>
-                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><BarChart3 size={20} /> League Table</h2>
-                            <div className="overflow-x-auto text-[10px]"><table className="w-full border-collapse"><thead><tr><th className="p-2 border border-border bg-muted/30"></th>{eqProfiles.filter(p => p.enabled !== false).map(p => <th key={p.id} className="p-2 border border-border bg-muted/30 min-w-[80px] truncate max-w-[100px]" title={p.name}>{p.name}</th>)}</tr></thead><tbody>{eqProfiles.filter(p => p.enabled !== false).map(row => <tr key={row.id}><th className="p-2 border border-border bg-muted/30 text-left truncate max-w-[100px]" title={row.name}>{row.name}</th>{eqProfiles.filter(p => p.enabled !== false).map(col => { if(row.id===col.id)return<td key={col.id} className="bg-muted/50 border border-border"></td>; const m=history.filter(h=>(h.idA===row.id&&h.idB===col.id)||(h.idA===col.id&&h.idB===row.id)); let w=0,l=0,d=0; m.forEach(x=>{if(x.winnerId===row.id)w++;else if(x.winnerId===col.id)l++;else d++;}); if(w+l+d===0)return<td key={col.id} className="border border-border text-center text-muted-foreground opacity-30">-</td>; return<td key={col.id} className={`border border-border text-center ${w>l?'text-green-400':l>w?'text-red-400':'text-muted-foreground'}`}>{w}-{l}{d>0?`-${d}`:''}</td>; })}</tr>)}</tbody></table></div>
-                        </section>
-                    </div>
-                )}
-              </main>
-            </div>
-          );
+                        )}
+
+                        {mode === 'results' && (
+                            <div className="space-y-12 animate-in fade-in text-sm">
+                                <div className="flex flex-wrap justify-end gap-2">
+                                    <div className="flex gap-1">
+                                        <button onClick={() => exportData('rankings', 'csv')} className="border border-border text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-colors"><Download size={10} /> Rankings CSV</button>
+                                        <button onClick={() => exportData('rankings', 'json')} className="border border-border text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-colors"><Download size={10} /> Rankings JSON</button>
+                                        <button onClick={() => exportData('history', 'csv')} className="border border-border text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-colors"><Download size={10} /> History CSV</button>
+                                        <button onClick={() => exportData('history', 'json')} className="border border-border text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-colors"><Download size={10} /> History JSON</button>
+                                        <button onClick={exportResultsAsImage} className="border border-border text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 transition-colors bg-primary/10"><Camera size={10} /> Save as Image</button>
+                                    </div>
+                                    {!isResetConfirming ? (
+                                        <button onClick={() => setIsResetConfirming(true)} className="border border-red-500/50 text-red-500 hover:bg-red-500/10 px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 text-[10px]"><RotateCcw size={12} /> Reset</button>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-sm"><span className="text-[10px] text-red-400 font-bold flex items-center gap-1"><AlertCircle size={12} /> Are you sure?</span><button onClick={executeReset} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-700">Yes, Reset</button><button onClick={() => setIsResetConfirming(false)} className="bg-muted text-muted-foreground px-3 py-1.5 rounded-lg text-[10px]">Cancel</button></div>
+                                    )}
+                                </div>
+
+                                <section>
+                                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Award size={20} /> Ranking</h2>
+                                    <div className="bg-background border border-border rounded-xl overflow-hidden text-xs">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider"><tr><th className="p-3">Rank</th><th className="p-3">Name</th><th className="p-3 text-right">Rating</th><th className="p-3 text-right">RD</th><th className="p-3 text-right">σ</th><th className="p-3 text-right">Status</th><th className="p-3 text-right">Win Rate</th><th className="p-3 text-right">W/L/D</th></tr></thead>
+                                            <tbody>{eqProfiles.filter(p => p.enabled !== false).sort((a, b) => (b.rating || 1500) - (a.rating || 1500)).map((p, i) => {
+                                                const badge = getConvergenceBadge(p.rd || 350);
+                                                return (
+                                                    <tr key={p.id} className="border-b border-border last:border-0">
+                                                        <td className="p-3 font-mono font-bold text-muted-foreground">{i + 1}</td>
+                                                        <td className="p-3 font-medium">{p.name}</td>
+                                                        <td className="p-3 text-right font-bold text-primary">{Math.round(p.rating || 1500)}</td>
+                                                        <td className="p-3 text-right font-mono text-muted-foreground" title={`95 % CI: ${Math.round((p.rating || 1500) - 2 * (p.rd || 350))} — ${Math.round((p.rating || 1500) + 2 * (p.rd || 350))} `}>±{Math.round(p.rd || 350)}</td>
+                                                        <td className="p-3 text-right font-mono text-muted-foreground">{(p.vol || 0.06).toFixed(6)}</td>
+                                                        <td className="p-3 text-right"><span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badge.color} `}>{badge.label}</span></td>
+                                                        <td className="p-3 text-right font-bold">{p.battles ? Math.round((p.wins / p.battles) * 100) : 0}%</td>
+                                                        <td className="p-3 text-right text-muted-foreground">{p.wins || 0}/{(p.battles || 0) - (p.wins || 0) - (p.draws || 0)}/{p.draws || 0}</td>
+                                                    </tr>);
+                                            })}</tbody>
+                                        </table>
+                                    </div>
+                                </section>
+
+                                {history.length > 0 && (
+                                    <section>
+                                        <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><TrendingUp size={20} /> Rating Progression</h2>
+                                        <div className="bg-background border border-border rounded-xl p-4 overflow-hidden">
+                                            <canvas ref={el => {
+                                                if (!el || history.length === 0) return;
+                                                const dpr = window.devicePixelRatio || 2;
+                                                const cssW = 780, cssH = 360;
+                                                el.width = cssW * dpr; el.height = cssH * dpr;
+                                                el.style.width = cssW + 'px'; el.style.height = cssH + 'px';
+                                                const cx = el.getContext('2d');
+                                                cx.scale(dpr, dpr);
+                                                cx.clearRect(0, 0, cssW, cssH);
+                                                const W = cssW, H = cssH;
+                                                const isDark = theme === 'dark';
+                                                const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+                                                const textColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+                                                const colors = ['#f87171', '#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#fb923c', '#f472b6', '#2dd4bf'];
+                                                const active = eqProfiles.filter(p => p.enabled !== false);
+                                                if (active.length === 0) return;
+                                                const reversed = [...history].reverse();
+                                                const series = {};
+                                                active.forEach(p => { series[p.id] = [{ x: 0, y: 1500 }]; });
+                                                reversed.forEach((h, idx) => {
+                                                    active.forEach(p => {
+                                                        const arr = series[p.id];
+                                                        if (h.idA === p.id || h.idB === p.id) {
+                                                            const r = h.idA === p.id ? (h.ratingA || arr[arr.length - 1].y) : (h.ratingB || arr[arr.length - 1].y);
+                                                            arr.push({ x: idx + 1, y: r });
+                                                        }
+                                                    });
+                                                });
+                                                const allY = Object.values(series).flat().map(pt => pt.y);
+                                                const minY = Math.floor((Math.min(...allY) - 50) / 50) * 50;
+                                                const maxY = Math.ceil((Math.max(...allY) + 50) / 50) * 50;
+                                                const maxX = reversed.length;
+                                                const pad = { l: 50, r: 20, t: 10, b: 30 };
+                                                const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+                                                const toX = (x) => pad.l + (x / Math.max(maxX, 1)) * pw;
+                                                const toY = (y) => pad.t + ph - ((y - minY) / Math.max(maxY - minY, 1)) * ph;
+                                                cx.strokeStyle = gridColor; cx.lineWidth = 1;
+                                                for (let v = minY; v <= maxY; v += 50) { cx.beginPath(); cx.moveTo(pad.l, toY(v)); cx.lineTo(W - pad.r, toY(v)); cx.stroke(); }
+                                                cx.fillStyle = textColor; cx.font = '11px monospace'; cx.textAlign = 'right';
+                                                for (let v = minY; v <= maxY; v += 100) { cx.fillText(v, pad.l - 6, toY(v) + 3); }
+                                                cx.strokeStyle = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'; cx.setLineDash([4, 4]); cx.beginPath(); cx.moveTo(pad.l, toY(1500)); cx.lineTo(W - pad.r, toY(1500)); cx.stroke(); cx.setLineDash([]);
+                                                active.forEach((p, ci) => {
+                                                    const pts = series[p.id]; if (pts.length < 2) return;
+                                                    cx.strokeStyle = colors[ci % colors.length]; cx.lineWidth = 2; cx.beginPath();
+                                                    pts.forEach((pt, j) => { j === 0 ? cx.moveTo(toX(pt.x), toY(pt.y)) : cx.lineTo(toX(pt.x), toY(pt.y)); });
+                                                    cx.stroke();
+                                                    const last = pts[pts.length - 1];
+                                                    cx.fillStyle = colors[ci % colors.length]; cx.beginPath(); cx.arc(toX(last.x), toY(last.y), 4, 0, Math.PI * 2); cx.fill();
+                                                    const labelText = `${p.name} (${Math.round(last.y)})`;
+                                                    cx.font = '11px sans-serif';
+                                                    const labelW = cx.measureText(labelText).width;
+                                                    const labelX = toX(last.x) + 8 + labelW > W - pad.r ? toX(last.x) - labelW - 8 : toX(last.x) + 8;
+                                                    cx.fillStyle = colors[ci % colors.length]; cx.textAlign = 'left';
+                                                    cx.fillText(labelText, labelX, toY(last.y) + 3);
+                                                });
+                                            }} className="w-full" style={{ maxHeight: '360px' }} />
+                                        </div>
+                                    </section>
+                                )}
+
+                                {playlist.length > 0 && (
+                                    <section>
+                                        <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Music size={20} /> Per-Song Rankings</h2>
+                                        <div className="mb-3">
+                                            <select value={selectedSongFilter} onChange={e => setSelectedSongFilter(e.target.value)} className="bg-muted border border-border rounded-lg px-3 py-1.5 text-xs">
+                                                <option value="__all__">All Songs (Overall)</option>
+                                                {playlist.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                            </select>
+                                        </div>
+                                        {selectedSongFilter !== '__all__' && (
+                                            <div className="bg-background border border-border rounded-xl overflow-hidden text-xs">
+                                                <table className="w-full text-left">
+                                                    <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider"><tr><th className="p-3">Rank</th><th className="p-3">Name</th><th className="p-3 text-right">Rating</th><th className="p-3 text-right">RD</th><th className="p-3 text-right">Status</th></tr></thead>
+                                                    <tbody>{eqProfiles.filter(p => p.enabled !== false).map(p => {
+                                                        const psr = (p.perSongRatings || {})[selectedSongFilter] || { rating: 1500, rd: 350 };
+                                                        return { ...p, songRating: psr.rating, songRd: psr.rd };
+                                                    }).sort((a, b) => b.songRating - a.songRating).map((p, i) => {
+                                                        const badge = getConvergenceBadge(p.songRd);
+                                                        return (
+                                                            <tr key={p.id} className="border-b border-border last:border-0">
+                                                                <td className="p-3 font-mono font-bold text-muted-foreground">{i + 1}</td>
+                                                                <td className="p-3 font-medium">{p.name}</td>
+                                                                <td className="p-3 text-right font-bold text-primary">{Math.round(p.songRating)}</td>
+                                                                <td className="p-3 text-right font-mono text-muted-foreground">±{Math.round(p.songRd)}</td>
+                                                                <td className="p-3 text-right"><span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badge.color} `}>{badge.label}</span></td>
+                                                            </tr>);
+                                                    })}</tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </section>
+                                )}
+
+                                {history.length > 0 && (
+                                    <section>
+                                        <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Clock size={20} /> Match History</h2>
+                                        <div className="bg-background border border-border rounded-xl overflow-hidden text-xs">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider"><tr><th className="p-3">Time</th><th className="p-3">Song</th><th className="p-3">Match</th><th className="p-3 text-center">Result</th><th className="p-3 text-right">Duration</th></tr></thead>
+                                                <tbody>{history.slice(0, historyShowCount).map((h, i) => (
+                                                    <tr key={i} className="border-b border-border last:border-0">
+                                                        <td className="p-3 font-mono text-muted-foreground text-[10px]">{new Date(h.timestamp).toLocaleString()}</td>
+                                                        <td className="p-3 truncate max-w-[120px]" title={h.song}>{h.song}</td>
+                                                        <td className="p-3"><span className={h.vote === 'A' ? 'font-bold' : ''}>{h.profileA}</span> <span className="text-muted-foreground mx-1">vs</span> <span className={h.vote === 'B' ? 'font-bold' : ''}>{h.profileB}</span></td>
+                                                        <td className="p-3 text-center">{h.vote === 'Tie' ? <span className="text-muted-foreground">Tie</span> : <span className="font-bold">{h.vote === 'A' ? h.profileA : h.profileB}</span>}</td>
+                                                        <td className="p-3 text-right font-mono text-muted-foreground">{h.duration ? `${(h.duration / 1000).toFixed(1)} s` : '—'}</td>
+                                                    </tr>
+                                                ))}</tbody>
+                                            </table>
+                                            {history.length > historyShowCount && (
+                                                <div className="p-3 text-center border-t border-border">
+                                                    <button onClick={() => setHistoryShowCount(c => c + 20)} className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">Show more ({history.length - historyShowCount} remaining)</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
+
+                                <section>
+                                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><BarChart3 size={20} /> League Table</h2>
+                                    <div className="overflow-x-auto text-[10px]"><table className="w-full border-collapse"><thead><tr><th className="p-2 border border-border bg-muted/30"></th>{eqProfiles.filter(p => p.enabled !== false).map(p => <th key={p.id} className="p-2 border border-border bg-muted/30 min-w-[80px] truncate max-w-[100px]" title={p.name}>{p.name}</th>)}</tr></thead><tbody>{eqProfiles.filter(p => p.enabled !== false).map(row => <tr key={row.id}><th className="p-2 border border-border bg-muted/30 text-left truncate max-w-[100px]" title={row.name}>{row.name}</th>{eqProfiles.filter(p => p.enabled !== false).map(col => { if (row.id === col.id) return <td key={col.id} className="bg-muted/50 border border-border"></td>; const m = history.filter(h => (h.idA === row.id && h.idB === col.id) || (h.idA === col.id && h.idB === row.id)); let w = 0, l = 0, d = 0; m.forEach(x => { if (x.winnerId === row.id) w++; else if (x.winnerId === col.id) l++; else d++; }); if (w + l + d === 0) return <td key={col.id} className="border border-border text-center text-muted-foreground opacity-30">-</td>; return <td key={col.id} className={`border border-border text-center ${w > l ? 'text-green-400' : l > w ? 'text-red-400' : 'text-muted-foreground'} `}>{w}-{l}{d > 0 ? ` - ${d}` : ''}</td>; })}</tr>)}</tbody></table></div>
+                                </section>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
         }
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
+
 </html>

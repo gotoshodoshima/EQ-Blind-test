@@ -1,24 +1,32 @@
 {
-  "name": "eq-blind-test",
-  "version": "2.0.1",
-  "description": "Offline EQ Blind Test Application",
+  "name": "eq-shootout",
+  "version": "3.0.0",
+  "productName": "EQ Shootout",
+  "description": "Offline EQ Shootout Application",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
-  "author": "Your Name",
+  "author": "EQ Shootout",
   "license": "MIT",
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.example.eqblindtest",
+    "appId": "com.eqshootout.app",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "verifyUpdateCodeSignature": false,
+      "legalTrademarks": ""
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "asar": false,
     "files": [
       "**/*"
     ]
