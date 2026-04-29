@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EQ Shootout v2</title>
+    <title>Shootout</title>
 
     <!-- Required local libraries in ./libs folder -->
     <script src="./libs/react.development.js"></script>
@@ -138,14 +138,84 @@
         .dragging {
             opacity: 0.4;
         }
+
+        /* Auto-hiding Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            background-color: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: transparent;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        body:hover::-webkit-scrollbar-thumb,
+        .overflow-y-auto:hover::-webkit-scrollbar-thumb {
+            background-color: rgba(150, 150, 150, 0.3);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(150, 150, 150, 0.6) !important;
+        }
+
+        /* Custom Hover Titlebar */
+        #titlebar-container {
+            position: fixed; top: 0; left: 0; right: 0; height: 12px; z-index: 99999;
+        }
+        #custom-titlebar {
+            position: absolute; top: 0; left: 0; right: 0; height: 32px;
+            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(4px);
+            display: flex; justify-content: space-between; align-items: center; padding: 0 16px;
+            transform: translateY(-100%); transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-app-region: drag; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        #titlebar-container:hover #custom-titlebar {
+            transform: translateY(0);
+        }
+        .titlebar-btn {
+            -webkit-app-region: no-drag; background: transparent; border: none; color: #a1a1aa;
+            width: 32px; height: 24px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.1s; outline: none;
+        }
+        .titlebar-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .titlebar-btn.close:hover { background: #ef4444; color: #fff; }
     </style>
 </head>
 
 <body>
+    <div id="titlebar-container">
+        <div id="custom-titlebar">
+            <div style="font-size: 11px; font-weight: bold; color: #a1a1aa;">Shootout</div>
+            <div style="display: flex; gap: 4px;">
+                <button class="titlebar-btn" onclick="require('electron').ipcRenderer.send('window-min')">
+                    <svg width="10" height="10" viewBox="0 0 10 10"><path fill="currentColor" d="M1,4.5 h8 v1 h-8 z"/></svg>
+                </button>
+                <button class="titlebar-btn" onclick="require('electron').ipcRenderer.send('window-max')">
+                    <svg width="10" height="10" viewBox="0 0 10 10"><path fill="currentColor" d="M1,1 h8 v8 h-8 z M2,2 v6 h6 v-6 z"/></svg>
+                </button>
+                <button class="titlebar-btn close" onclick="require('electron').ipcRenderer.send('window-close')">
+                    <svg width="10" height="10" viewBox="0 0 10 10"><path fill="currentColor" d="M1,1 l8,8 m0,-8 l-8,8" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+
+        const child_process = typeof window !== 'undefined' && window.require ? window.require('child_process') : null;
+        const path_mod = typeof window !== 'undefined' && window.require ? window.require('path') : null;
+        const fs = typeof window !== 'undefined' && window.require ? window.require('fs') : null;
+
+        const STATE_FILE = path_mod ? path_mod.join(__dirname, 'app_state.json') : null;
+        const loadState = () => {
+            if (fs && STATE_FILE && fs.existsSync(STATE_FILE)) {
+                try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch(e) { return null; }
+            }
+            return null;
+        };
+        const savedState = loadState() || {};
 
         // --- Icon Setup ---
         const createIcon = (name) => {
@@ -209,39 +279,6 @@
             const data = buffer.getChannelData(0).slice(Math.floor(start * sampleRate), Math.floor((start + dur) * sampleRate));
             let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
             return Math.sqrt(sum / data.length);
-        };
-
-        // --- IndexedDB ---
-        const DB_NAME = "EQBlindTestDB";
-        const STORE_NAME = "songs";
-
-        const initDB = () => {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onupgradeneeded = (e) => { e.target.result.createObjectStore(STORE_NAME, { keyPath: "id" }); };
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e.target.error);
-            });
-        };
-
-        const dbSaveSong = async (id, name, blob) => {
-            const db = await initDB();
-            const tx = db.transaction(STORE_NAME, "readwrite");
-            tx.objectStore(STORE_NAME).put({ id, name, blob });
-        };
-
-        const dbDeleteSong = async (id) => {
-            const db = await initDB();
-            const tx = db.transaction(STORE_NAME, "readwrite");
-            tx.objectStore(STORE_NAME).delete(id);
-        };
-
-        const dbGetAllSongs = async () => {
-            const db = await initDB();
-            return new Promise(r => {
-                const req = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll();
-                req.onsuccess = () => r(req.result);
-            });
         };
 
         // --- Visualizer ---
@@ -352,9 +389,10 @@
             const [currentTime, setCurrentTime] = useState(0);
             const [volume, setVolume] = useState(0.8);
             const [showPlaylist, setShowPlaylist] = useState(false);
+            const [playbackStartPos, setPlaybackStartPos] = useState(0);
 
-            const [eqProfiles, setEqProfiles] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_profiles') || '[]'));
-            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('eq_blind_test_history') || '[]'));
+            const [eqProfiles, setEqProfiles] = useState(() => savedState.eqProfiles || JSON.parse(localStorage.getItem('eq_blind_test_profiles') || '[]'));
+            const [history, setHistory] = useState(() => savedState.history || JSON.parse(localStorage.getItem('eq_blind_test_history') || '[]'));
             const [mode, setMode] = useState('setup');
             const [currentPair, setCurrentPair] = useState({ hiddenA: null, hiddenB: null });
             const [activeSource, setActiveSource] = useState(null);
@@ -362,7 +400,10 @@
             const [testQueue, setTestQueue] = useState([]);
             const [isResetConfirming, setIsResetConfirming] = useState(false);
             const [autoGainCache, setAutoGainCache] = useState({});
-            const [theme, setTheme] = useState(() => localStorage.getItem('eq_blind_test_theme') || 'dark');
+            const [theme, setTheme] = useState(() => savedState.theme || localStorage.getItem('eq_blind_test_theme') || 'dark');
+            const [normalizationMethod, setNormalizationMethod] = useState(() => savedState.normalizationMethod || localStorage.getItem('eq_blind_test_norm_method') || 'neuro_lufs');
+            const [neuroLufsData, setNeuroLufsData] = useState({});
+            const [modelWeights, setModelWeights] = useState(null);
             const [roundStartTime, setRoundStartTime] = useState(null);
             const [dragIndex, setDragIndex] = useState(null);
             const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -377,16 +418,37 @@
             const songLoudnessGainRef = useRef(null);
             const startTimeRef = useRef(0);
             const pauseTimeRef = useRef(0);
+            const playbackStartPosRef = useRef(0);
             const animationRef = useRef(null);
             const isPlayingRef = useRef(false);
 
             useEffect(() => { localStorage.setItem('eq_blind_test_profiles', JSON.stringify(eqProfiles)); }, [eqProfiles]);
             useEffect(() => { localStorage.setItem('eq_blind_test_history', JSON.stringify(history)); }, [history]);
             useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+            useEffect(() => { playbackStartPosRef.current = playbackStartPos; }, [playbackStartPos]);
+            useEffect(() => { localStorage.setItem('eq_blind_test_norm_method', normalizationMethod); }, [normalizationMethod]);
+            useEffect(() => {
+                fetch('./model_weights.json').then(r => r.json()).then(w => setModelWeights(w)).catch(e => console.warn('Neuro-LUFS model weights not found.', e));
+            }, []);
             useEffect(() => {
                 document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '');
                 localStorage.setItem('eq_blind_test_theme', theme);
             }, [theme]);
+            
+            useEffect(() => {
+                if (fs && STATE_FILE) {
+                    try {
+                        const stateObj = {
+                            eqProfiles,
+                            history,
+                            theme,
+                            normalizationMethod,
+                            playlistPaths: playlist.map(s => ({ id: s.id, name: s.name, path: s.path }))
+                        };
+                        fs.writeFileSync(STATE_FILE, JSON.stringify(stateObj), 'utf8');
+                    } catch(e) {}
+                }
+            }, [eqProfiles, history, theme, normalizationMethod, playlist]);
 
             const currentSong = playlist[currentSongIndex] || null;
 
@@ -394,19 +456,24 @@
             useEffect(() => {
                 (async () => {
                     try {
-                        const stored = await dbGetAllSongs();
-                        if (stored && stored.length > 0) {
+                        if (fs && savedState.playlistPaths && savedState.playlistPaths.length > 0) {
                             setIsSongLoading(true); setLoadingMessage("Restoring playlist...");
                             const ctx = new (window.AudioContext || window.webkitAudioContext)();
                             audioCtxRef.current = ctx;
                             analyserNodeRef.current = ctx.createAnalyser();
                             const list = [];
-                            for (const s of stored) {
-                                try {
-                                    const buffer = await ctx.decodeAudioData(await s.blob.arrayBuffer());
-                                    const rms = calcSongRMS(buffer);
-                                    list.push({ id: s.id, name: s.name, buffer, duration: buffer.duration, rms });
-                                } catch (e) { }
+                            
+                            for (const s of savedState.playlistPaths) {
+                                if (s.path && fs.existsSync(s.path)) {
+                                    try {
+                                        const fileBuffer = fs.readFileSync(s.path);
+                                        const arrayBuffer = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+                                        const buffer = await ctx.decodeAudioData(arrayBuffer);
+                                        const rms = calcSongRMS(buffer);
+                                        list.push({ id: s.id, name: s.name, buffer, duration: buffer.duration, rms, path: s.path });
+                                        runAnalyzer(s.id, s.path);
+                                    } catch (e) { console.error('Failed to load', s.path, e); }
+                                }
                             }
                             setPlaylist(list);
                         }
@@ -424,6 +491,41 @@
                 return audioCtxRef.current;
             };
 
+            const runAnalyzer = (id, filePath) => {
+                if (!child_process || !path_mod || !filePath) return;
+                const analyzerPath = path_mod.join(__dirname, 'analyzer.py');
+                child_process.exec(`python "${analyzerPath}" "${filePath}"`, (err, stdout) => {
+                    if (err) return console.error('Analyzer error:', err);
+                    try {
+                        const data = JSON.parse(stdout);
+                        if (data.true_lufs) {
+                            setNeuroLufsData(prev => ({ ...prev, [id]: data }));
+                        }
+                    } catch (e) { console.error('Parse error:', e); }
+                });
+            };
+
+            const predictLUFS = (psd, true_lufs, eq_resp) => {
+                if (!modelWeights || !psd || !eq_resp) return 0;
+                let x = [...psd, true_lufs, ...eq_resp];
+                x = x.map((v, i) => (v - modelWeights.mean[i]) / (modelWeights.std[i] || 1));
+                
+                let current = x;
+                for (let i = 0; i < modelWeights.layers.length; i++) {
+                    const layer = modelWeights.layers[i];
+                    const next = [];
+                    for (let j = 0; j < layer.bias.length; j++) {
+                        let sum = layer.bias[j];
+                        for (let k = 0; k < current.length; k++) {
+                            sum += current[k] * layer.weight[j][k];
+                        }
+                        next.push(layer.activation === 'relu' ? Math.max(0, sum) : sum);
+                    }
+                    current = next;
+                }
+                return current[0];
+            };
+
             const handleFileSelect = async (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
@@ -435,8 +537,8 @@
                         const buf = await ctx.decodeAudioData(await f.arrayBuffer());
                         const id = Date.now().toString() + Math.random();
                         const rms = calcSongRMS(buf);
-                        news.push({ id, name: f.name, buffer: buf, duration: buf.duration, rms });
-                        await dbSaveSong(id, f.name, f);
+                        news.push({ id, name: f.name, buffer: buf, duration: buf.duration, rms, path: f.path });
+                        if (f.path) runAnalyzer(id, f.path);
                     } catch (e) { }
                 }
                 setPlaylist(prev => [...prev, ...news]);
@@ -445,10 +547,9 @@
 
             const removeSong = async (idx) => {
                 const s = playlist[idx];
-                if (s) await dbDeleteSong(s.id);
                 // Stop playback if removing the currently playing song or if playlist will be empty
                 if (currentSongIndex === idx || playlist.length <= 1) {
-                    sourceNodeRef.current?.stop();
+                    try { sourceNodeRef.current?.stop(); } catch(e) {}
                     setIsPlaying(false); isPlayingRef.current = false;
                     cancelAnimationFrame(animationRef.current);
                 }
@@ -458,10 +559,38 @@
                 else if (idx === currentSongIndex && currentSongIndex >= playlist.length - 1) setCurrentSongIndex(i => Math.max(0, i - 1));
             };
 
-            const calculateLoudnessCompensation = async (profile, buffer) => {
-                if (!profile || !buffer) return 0;
-                const cacheKey = `${buffer.duration}_${profile.id}_${profile.rawCode}`;
+            const calculateLoudnessCompensation = async (profile, songObj) => {
+                if (!profile || !songObj) return 0;
+                const buffer = songObj.buffer;
+                const cacheKey = `${buffer.duration}_${profile.id}_${profile.rawCode}_${normalizationMethod}`;
                 if (autoGainCache[cacheKey] !== undefined) return autoGainCache[cacheKey];
+
+                if (normalizationMethod === 'neuro_lufs' && neuroLufsData[songObj.id] && modelWeights) {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const freqs = new Float32Array(63);
+                    const log20 = Math.log10(20), log20k = Math.log10(20000);
+                    for (let i=0; i<63; i++) freqs[i] = Math.pow(10, log20 + i*(log20k - log20)/62);
+                    
+                    let totalResp = new Float32Array(63);
+                    if (profile.preamp) {
+                        for(let i=0; i<63; i++) totalResp[i] += profile.preamp;
+                    }
+                    
+                    profile.bands?.forEach(b => {
+                        const filter = ctx.createBiquadFilter();
+                        filter.type = b.type || 'peaking'; filter.frequency.value = b.freq;
+                        filter.gain.value = b.gain; filter.Q.value = b.q || 1.0;
+                        const magResponse = new Float32Array(63);
+                        const phaseResponse = new Float32Array(63);
+                        filter.getFrequencyResponse(freqs, magResponse, phaseResponse);
+                        for(let i=0; i<63; i++) totalResp[i] += 20 * Math.log10(Math.max(magResponse[i], 1e-10));
+                    });
+                    
+                    const delta = predictLUFS(neuroLufsData[songObj.id].psd, neuroLufsData[songObj.id].true_lufs, Array.from(totalResp));
+                    setAutoGainCache(prev => ({ ...prev, [cacheKey]: -delta }));
+                    return -delta;
+                }
+
                 const sampleRate = buffer.sampleRate;
                 const dur = Math.min(5, buffer.duration);
                 const start = buffer.duration > 20 ? buffer.duration / 2 - 2.5 : 0;
@@ -504,7 +633,7 @@
                 if (preampNodeRef.current) preampNodeRef.current.disconnect();
                 if (songLoudnessGainRef.current) songLoudnessGainRef.current.disconnect();
 
-                const cacheKey = songBuffer ? `${songBuffer.duration}_${profile.id}_${profile.rawCode}` : null;
+                const cacheKey = songBuffer ? `${songBuffer.duration}_${profile.id}_${profile.rawCode}_${normalizationMethod}` : null;
                 const autoGain = autoGainCache[cacheKey] || 0;
 
                 // Song-level loudness normalization
@@ -571,7 +700,8 @@
                 buildEQChainSync(prof, song.buffer, song);
                 source.connect(songLoudnessGainRef.current);
 
-                const offset = startFromZero ? 0 : (pauseTimeRef.current % song.duration) || 0;
+                const baseOffset = (pauseTimeRef.current === 0) ? Math.min(playbackStartPosRef.current, Math.max(0, song.duration - 0.1)) : (pauseTimeRef.current % song.duration);
+                const offset = startFromZero ? Math.min(playbackStartPosRef.current, Math.max(0, song.duration - 0.1)) : baseOffset;
                 startTimeRef.current = ctx.currentTime - offset;
                 source.start(0, offset);
 
@@ -660,7 +790,7 @@
                 const active = eqProfiles.filter(p => p.enabled !== false);
                 if (active.length < 2 || playlist.length === 0) return alert("Settings required: Load songs and enable at least 2 profiles.");
                 let idx = currentSongIndex;
-                if (next) { idx = (idx + 1) % playlist.length; setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); }
+                if (next) { idx = (idx + 1) % playlist.length; setCurrentSongIndex(idx); pauseTimeRef.current = playbackStartPosRef.current; setCurrentTime(playbackStartPosRef.current); }
                 const song = playlist[idx];
                 let q = [...testQueue];
                 if (q.length === 0) {
@@ -670,7 +800,7 @@
                 const [id1, id2] = q.shift(); setTestQueue(q);
                 const p1 = eqProfiles.find(p => p.id === id1);
                 const p2 = eqProfiles.find(p => p.id === id2);
-                await Promise.all([calculateLoudnessCompensation(p1, song.buffer), calculateLoudnessCompensation(p2, song.buffer)]);
+                await Promise.all([calculateLoudnessCompensation(p1, song), calculateLoudnessCompensation(p2, song)]);
                 const isRev = Math.random() > 0.5;
                 setCurrentPair({ hiddenA: isRev ? id2 : id1, hiddenB: isRev ? id1 : id2 });
                 setActiveSource(null); setMode('test');
@@ -1007,7 +1137,7 @@
                 <div className="min-h-screen pb-20 bg-background text-foreground">
                     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border text-sm">
                         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                            <div className="flex items-center gap-2"><Activity size={20} className="text-primary" /><h1 className="font-bold">EQ Shootout v2</h1></div>
+                            <div className="flex items-center"><img src="./icon.svg" alt="App Icon" className="h-8 w-auto rounded-md" /></div>
                             <nav className="flex gap-4 font-medium items-center">
                                 <button onClick={() => setMode('setup')} className={mode === 'setup' ? 'text-primary' : 'text-muted-foreground'}>Setup</button>
                                 <button onClick={() => { if (mode !== 'test') { if (currentPair && currentPair.hiddenA) setMode('test'); else startTestRound(false); } else setMode('test'); }} className={mode === 'test' ? 'text-primary' : 'text-muted-foreground'}>Test</button>
@@ -1049,7 +1179,7 @@
                                         {playlist.map((song, idx) => (
                                             <li key={song.id} draggable onDragStart={e => handlePlaylistDragStart(e, idx)} onDragOver={e => handlePlaylistDragOver(e, idx)} onDrop={e => handlePlaylistDrop(e, idx)} onDragEnd={handlePlaylistDragEnd} className={`p-2 flex items-center justify-between hover:bg-muted/30 cursor-grab ${currentSongIndex === idx ? 'bg-primary/10' : ''} ${dragIndex === idx ? 'dragging' : ''} ${dragOverIndex === idx ? 'drag-over' : ''} `}>
                                                 <div className="flex items-center gap-1 text-muted-foreground"><GripVertical size={12} /></div>
-                                                <button onClick={() => { setCurrentSongIndex(idx); pauseTimeRef.current = 0; setCurrentTime(0); playAudio(true, song, true); }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
+                                                <button onClick={() => { setCurrentSongIndex(idx); pauseTimeRef.current = playbackStartPosRef.current; setCurrentTime(playbackStartPosRef.current); playAudio(true, song, true); }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
                                                 <button onClick={() => removeSong(idx)} className="text-muted-foreground hover:text-destructive p-1"><X size={14} /></button>
                                             </li>
                                         ))}
@@ -1059,24 +1189,57 @@
 
                             <div className="flex items-center gap-4">
                                 <button onClick={() => playAudio()} disabled={!currentSong} className="size-12 shrink-0 rounded-full bg-foreground text-background flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50">{isPlaying ? <Pause size={24} /> : <Play size={24} />}</button>
-                                <div className="w-full">
-                                    <input
-                                        type="range"
-                                        min="0" max={currentSong?.duration || 100} step="0.1"
-                                        value={currentTime}
-                                        onChange={e => { pauseTimeRef.current = parseFloat(e.target.value); if (isPlaying) playAudio(true, null, false); else setCurrentTime(parseFloat(e.target.value)); }}
-                                        disabled={!currentSong}
-                                        className="w-full"
-                                        style={{ background: `linear-gradient(to right, var(--slider-track-fill) ${progressPercent}%, var(--slider-track-bg) ${progressPercent}%)` }}
-                                    />
-                                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground mt-1"><span>{formatTimeDisplay(currentTime)}</span><span>{formatTimeDisplay(currentSong?.duration || 0)}</span></div>
+                                <div className="w-full flex-col flex gap-2 mt-2">
+                                    <div>
+                                        <div className="flex justify-between text-[10px] font-mono text-muted-foreground mb-1">
+                                            <span>Progress: {formatTimeDisplay(currentTime)}</span>
+                                            <span>{formatTimeDisplay(currentSong?.duration || 0)}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0" max={currentSong?.duration || 100} step="0.1"
+                                            value={currentTime}
+                                            onChange={e => { pauseTimeRef.current = parseFloat(e.target.value); if (isPlaying) playAudio(true, null, false); else setCurrentTime(parseFloat(e.target.value)); }}
+                                            disabled={!currentSong}
+                                            className="w-full"
+                                            style={{ background: `linear-gradient(to right, var(--slider-track-fill) ${progressPercent}%, var(--slider-track-bg) ${progressPercent}%)` }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-[10px] font-mono text-muted-foreground mb-1">
+                                            <span>Start Pos: {formatTimeDisplay(playbackStartPos)}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0" max={currentSong?.duration || 100} step="0.1"
+                                            value={playbackStartPos}
+                                            onChange={e => {
+                                                const newPos = parseFloat(e.target.value);
+                                                setPlaybackStartPos(newPos);
+                                                playbackStartPosRef.current = newPos;
+                                            }}
+                                            disabled={!currentSong}
+                                            className="w-full opacity-60 hover:opacity-100 transition-opacity"
+                                            style={{ background: `linear-gradient(to right, var(--slider-track-fill) ${currentSong ? (playbackStartPos / currentSong.duration) * 100 : 0}%, var(--slider-track-bg) ${currentSong ? (playbackStartPos / currentSong.duration) * 100 : 0}%)` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {mode === 'setup' && (
                             <div className="space-y-6 animate-in fade-in text-sm">
-                                <div className="flex justify-between items-center">
+                                <div className="flex justify-between items-center bg-muted/30 p-4 rounded-xl border border-border">
+                                    <div>
+                                        <h3 className="font-bold text-base">Normalization Method</h3>
+                                        <p className="text-xs text-muted-foreground mt-1">Neuro-LUFS uses ML for instant O(1) adjustment.</p>
+                                    </div>
+                                    <select value={normalizationMethod} onChange={e => setNormalizationMethod(e.target.value)} className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs">
+                                        <option value="neuro_lufs">Neuro-LUFS (Fast)</option>
+                                        <option value="legacy">Legacy RMS (Offline Render)</option>
+                                    </select>
+                                </div>
+                                <div className="flex justify-between items-center mt-4">
                                     <h2 className="text-xl font-bold flex items-center gap-2"><Settings size={20} /> EQ Profiles</h2>
                                     <div className="flex gap-2">
                                         <label className="btn border border-border px-3 py-1.5 rounded-md text-xs cursor-pointer hover:bg-muted flex items-center gap-2"><Import size={12} /> Import<input type="file" multiple onChange={async (e) => {
