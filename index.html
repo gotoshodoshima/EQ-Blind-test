@@ -1168,7 +1168,21 @@
                                         {playlist.map((song, idx) => (
                                             <li key={song.id} draggable onDragStart={e => handlePlaylistDragStart(e, idx)} onDragOver={e => handlePlaylistDragOver(e, idx)} onDrop={e => handlePlaylistDrop(e, idx)} onDragEnd={handlePlaylistDragEnd} className={`p-2 flex items-center justify-between hover:bg-muted/30 cursor-grab ${currentSongIndex === idx ? 'bg-primary/10' : ''} ${dragIndex === idx ? 'dragging' : ''} ${dragOverIndex === idx ? 'drag-over' : ''} `}>
                                                 <div className="flex items-center gap-1 text-muted-foreground"><GripVertical size={12} /></div>
-                                                <button onClick={() => { setCurrentSongIndex(idx); pauseTimeRef.current = playbackStartPosRef.current; setCurrentTime(playbackStartPosRef.current); playAudio(true, song, true); }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
+                                                <button onClick={async () => {
+                                                    setCurrentSongIndex(idx); 
+                                                    pauseTimeRef.current = playbackStartPosRef.current; 
+                                                    setCurrentTime(playbackStartPosRef.current); 
+                                                    
+                                                    if (mode === 'test' && currentPair.hiddenA && currentPair.hiddenB) {
+                                                        const pA = eqProfiles.find(p => p.id === currentPair.hiddenA);
+                                                        const pB = eqProfiles.find(p => p.id === currentPair.hiddenB);
+                                                        if (pA && pB) await Promise.all([calculateLoudnessCompensation(pA, song), calculateLoudnessCompensation(pB, song)]);
+                                                    } else if (mode === 'setup' && eqProfiles.length > 0) {
+                                                        await calculateLoudnessCompensation(eqProfiles[0], song);
+                                                    }
+
+                                                    playAudio(true, song, true); 
+                                                }} className="truncate flex-1 text-left px-2">{idx + 1}. {song.name}</button>
                                                 <button onClick={() => removeSong(idx)} className="text-muted-foreground hover:text-destructive p-1"><X size={14} /></button>
                                             </li>
                                         ))}

@@ -1,6 +1,6 @@
 {
   "name": "eq-shootout",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "productName": "Shootout",
   "description": "Offline EQ Shootout Application",
   "main": "main.js",
